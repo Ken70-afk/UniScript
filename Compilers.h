@@ -2,7 +2,7 @@
 ************************************************************
 * COMPILERS COURSE - Algonquin College
 * Code version: Fall, 2024
-* Author: Diyon Johnson / Abhinav
+* Author: Diyon Johnson / Abhinav Ranjith
 * Professors: Paulo Sousa
 ************************************************************
 #
@@ -65,10 +65,10 @@
 
 /* TO_DO: Logical constants - adapt for your language */
 #define UNI_TRUE		1
-#define SOFIA_FALSE		0
-#define SOFIA_ERROR		(-1)	/* General error message */
+#define UNI_FALSE		0
+#define UNI_ERROR		(-1)	/* General error message */
 
-#define SOFIA_INVALID	NULL
+#define UNI_INVALID	NULL
 
 /*
 ------------------------------------------------------------
@@ -80,17 +80,17 @@ NOTE: Some types may not be directly used by your language,
 
 
 /* TO_DO: Define your typedefs */
-typedef char			sofia_char;
-typedef char*			sofia_string;
-typedef int				sofia_intg;
-typedef float			sofia_real;
-typedef void			sofia_void;
+typedef char			uni_char;
+typedef char*			uni_string;
+typedef int				uni_int;
+typedef float			uni_float;
+typedef void			uni_null;
 
-typedef char			sofia_boln;
+//typedef char			sofia_boln;
 //typedef unsigned char	sofia_byte;
 
-typedef long			sofia_long;
-typedef double			sofia_doub;
+//typedef long			sofia_long;
+typedef double			uni_doub;
 
 /*
 ------------------------------------------------------------
@@ -112,13 +112,13 @@ Main functions signatures
 (Code will be updated during next assignments)
 ------------------------------------------------------------
 */
-sofia_intg mainReader(sofia_intg argc, sofia_string* argv);
+uni_int mainReader(uni_int argc, uni_string* argv);
 /* TO_DO: Remove comment in next assignments */
 /*
 sofia_intg mainScanner(sofia_intg argc, sofia_string* argv);
 sofia_intg mainParser(sofia_intg argc, sofia_string* argv);
 */
 
-sofia_void printLogo();
+uni_null printLogo();
 
 #endif
