@@ -2,7 +2,7 @@
 ************************************************************
 * COMPILERS COURSE - Algonquin College
 * Code version: Fall, 2024
-* Author: Diyon Johnson / Abhinav Ranjith
+* Author: Diyon Johnson / Abhinav
 * Professors: Paulo Sousa
 ************************************************************
 #
