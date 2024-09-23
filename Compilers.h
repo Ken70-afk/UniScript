@@ -87,7 +87,7 @@ typedef float			sofia_real;
 typedef void			sofia_void;
 
 typedef char			sofia_boln;
-typedef unsigned char	sofia_byte;
+//typedef unsigned char	sofia_byte;
 
 typedef long			sofia_long;
 typedef double			sofia_doub;
