@@ -96,8 +96,12 @@ BufferPointer readerCreate(uni_int size, uni_int increment, uni_char mode) {
 	BufferPointer readerPointer;
 	uni_int count = 0;
 	/* TO_DO: Defensive programming */
+	if (size < 0)
+		return UNI_INVALID;
 	if (!size)
 		size = READER_DEFAULT_SIZE;
+	if (increment < 0)
+		return UNI_INVALID;
 	if (!increment)
 		increment = READER_DEFAULT_INCREMENT;
 	if (!mode)
@@ -106,14 +110,30 @@ BufferPointer readerCreate(uni_int size, uni_int increment, uni_char mode) {
 	if (!readerPointer)
 		return UNI_INVALID;
 	readerPointer->content = (uni_string)malloc(size);
+
 	/* TO_DO: Defensive programming */
+	if (!readerPointer->content) {  // Handle allocation failure
+		free(readerPointer);  // Avoid memory leaks
+		return NULL;
+	}
+
 	/* TO_DO: Initialize the histogram */
-	/* TO_DO: Initialize errors */
+	for (int i = 0; i < NCHAR; i++) {
+		readerPointer->histogram[i] = 0;  // Clear the histogram (no characters processed)
+	}
 	readerPointer->mode = mode;
 	readerPointer->size = size;
 	readerPointer->increment = increment;
+	
+	/* TO_DO: Initialize errors */
+	readerPointer ->numReaderErrors = 0;
 	/* TO_DO: Initialize flags */
+	readerPointer->flags.isEmpty = UNI_TRUE;  // New buffer is empty
+	readerPointer->flags.isFull = UNI_FALSE;  // Buffer is not full initially
+	readerPointer->flags.isRead = UNI_FALSE;  // No data read yet
+	readerPointer->flags.isMoved = UNI_FALSE; // No memory reallocations yet
 	/* TO_DO: Default checksum */
+	readerPointer->checksum = 0;
 	return readerPointer;
 }
 
@@ -139,6 +159,9 @@ BufferPointer readerAddChar(BufferPointer readerPointer, uni_char ch) {
 	uni_int newSize = 0;
 	uni_char tempChar = ' ';
 	/* TO_DO: Defensive programming */
+	if (!readerPointer || ch < 0 || ch > 127) {
+		return UNI_INVALID;  // Return invalid if pointer is null or char is not valid
+	}
 	/* TO_DO: Reset Realocation */
 	/* TO_DO: Test the inclusion of chars */
 	if (readerPointer->positions.wrte * (uni_int)sizeof(uni_char) < readerPointer->size) {
