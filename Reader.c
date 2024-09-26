@@ -185,7 +185,7 @@ BufferPointer readerAddChar(BufferPointer readerPointer, uni_char ch) {
 *	- Adjust for your LANGUAGE.
 *************************************************************
 */
-sofia_boln readerClear(BufferPointer const readerPointer) {
+uni_boln readerClear(BufferPointer const readerPointer) {
 	/* TO_DO: Defensive programming */
 	/* TO_DO: Adjust the write, mark and read to zero */
 	/* TO_DO: Adjust flags */
@@ -206,7 +206,7 @@ sofia_boln readerClear(BufferPointer const readerPointer) {
 *	- Adjust for your LANGUAGE.
 *************************************************************
 */
-sofia_boln readerFree(BufferPointer const readerPointer) {
+uni_boln readerFree(BufferPointer const readerPointer) {
 	/* TO_DO: Defensive programming */
 	/* TO_DO: Free pointers */
 	return UNI_TRUE;
@@ -226,7 +226,7 @@ sofia_boln readerFree(BufferPointer const readerPointer) {
 *	- Adjust for your LANGUAGE.
 *************************************************************
 */
-sofia_boln readerIsFull(BufferPointer const readerPointer) {
+uni_boln readerIsFull(BufferPointer const readerPointer) {
 	/* TO_DO: Defensive programming */
 	/* TO_DO: Check flag if buffer is FUL */
 	return 0;
@@ -247,7 +247,7 @@ sofia_boln readerIsFull(BufferPointer const readerPointer) {
 *	- Adjust for your LANGUAGE.
 *************************************************************
 */
-sofia_boln readerIsEmpty(BufferPointer const readerPointer) {
+uni_boln readerIsEmpty(BufferPointer const readerPointer) {
 	/* TO_DO: Defensive programming */
 	/* TO_DO: Check flag if buffer is EMP */
 	return 0;
@@ -268,7 +268,7 @@ sofia_boln readerIsEmpty(BufferPointer const readerPointer) {
 *	- Adjust for your LANGUAGE.
 *************************************************************
 */
-sofia_boln readerSetMark(BufferPointer const readerPointer, uni_int mark) {
+uni_boln readerSetMark(BufferPointer const readerPointer, uni_int mark) {
 	/* TO_DO: Defensive programming */
 	/* TO_DO: Adjust mark */
 	return UNI_TRUE;
@@ -345,7 +345,7 @@ uni_int readerLoad(BufferPointer readerPointer, FILE* const fileDescriptor) {
 *	- Adjust for your LANGUAGE.
 *************************************************************
 */
-sofia_boln readerRecover(BufferPointer const readerPointer) {
+uni_boln readerRecover(BufferPointer const readerPointer) {
 	/* TO_DO: Defensive programming */
 	/* TO_DO: Recover positions: read and mark must be zero */
 	/* TO_DO: Update flags */
@@ -367,7 +367,7 @@ sofia_boln readerRecover(BufferPointer const readerPointer) {
 *	- Adjust for your LANGUAGE.
 *************************************************************
 */
-sofia_boln readerRetract(BufferPointer const readerPointer) {
+uni_boln readerRetract(BufferPointer const readerPointer) {
 	/* TO_DO: Defensive programming */
 	/* TO_DO: Retract (return 1 pos read) */
 	return UNI_TRUE;
@@ -388,7 +388,7 @@ sofia_boln readerRetract(BufferPointer const readerPointer) {
 *	- Adjust for your LANGUAGE.
 *************************************************************
 */
-sofia_boln readerRestore(BufferPointer const readerPointer) {
+uni_boln readerRestore(BufferPointer const readerPointer) {
 	/* TO_DO: Defensive programming */
 	/* TO_DO: Restore positions (read to mark) */
 	return UNI_TRUE;
@@ -633,7 +633,7 @@ uni_null readerCalcChecksum(BufferPointer readerPointer) {
 *************************************************************
 */
 
-sofia_boln readerPrintFlags(BufferPointer readerPointer) {
+uni_boln readerPrintFlags(BufferPointer readerPointer) {
 	/* TO_DO: Defensive programming */
 	/* TO_DO: Shows flags */
 	return UNI_TRUE;

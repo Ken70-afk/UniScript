@@ -105,10 +105,10 @@ enum READER_MODE {
 
 /* Offset declaration */
 typedef struct flag {
-	sofia_boln isEmpty;			/* indicates if the buffer is empty */
-	sofia_boln isFull;			/* indicates if the buffer is full */
-	sofia_boln isRead;			/* indicates if the buffer was completely read */
-	sofia_boln isMoved;			/* indicates if the buffer memory was changed */
+	uni_boln isEmpty;			/* indicates if the buffer is empty */
+	uni_boln isFull;			/* indicates if the buffer is full */
+	uni_boln isRead;			/* indicates if the buffer was completely read */
+	uni_boln isMoved;			/* indicates if the buffer memory was changed */
 } Flag;
 
 /* Offset declaration */
@@ -128,25 +128,25 @@ typedef struct bufferReader {
 	Position		positions;			/* Offset / position field */
 	uni_int		histogram[NCHAR];	/* Statistics of chars */
 	uni_int		numReaderErrors;	/* Number of errors from Reader */
-	sofia_byte		checksum;
+	uni_byte		checksum;
 } Buffer, * BufferPointer;
 
 /* FUNCTIONS DECLARATION:  .................................. */
 /* General Operations */
 BufferPointer	readerCreate		(uni_int, uni_int, uni_char);
 BufferPointer	readerAddChar		(BufferPointer const, uni_char);
-sofia_boln		readerClear		    (BufferPointer const);
-sofia_boln		readerFree		    (BufferPointer const);
-sofia_boln		readerIsFull		(BufferPointer const);
-sofia_boln		readerIsEmpty		(BufferPointer const);
-sofia_boln		readerSetMark		(BufferPointer const, uni_int);
+uni_boln		readerClear		    (BufferPointer const);
+uni_boln		readerFree		    (BufferPointer const);
+uni_boln		readerIsFull		(BufferPointer const);
+uni_boln		readerIsEmpty		(BufferPointer const);
+uni_boln		readerSetMark		(BufferPointer const, uni_int);
 uni_int		readerPrint		    (BufferPointer const);
 uni_int		readerLoad			(BufferPointer const, FILE* const);
-sofia_boln		readerRecover		(BufferPointer const);
-sofia_boln		readerRetract		(BufferPointer const);
-sofia_boln		readerRestore		(BufferPointer const);
+uni_boln		readerRecover		(BufferPointer const);
+uni_boln		readerRetract		(BufferPointer const);
+uni_boln		readerRestore		(BufferPointer const);
 uni_null		readerCalcChecksum	(BufferPointer const);
-sofia_boln		readerPrintFlags	(BufferPointer const);
+uni_boln		readerPrintFlags	(BufferPointer const);
 uni_null		readerPrintStat     (BufferPointer const);
 /* Getters */
 uni_char		readerGetChar		(BufferPointer const);
