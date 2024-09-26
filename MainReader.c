@@ -102,7 +102,7 @@
   */
 uni_null bErrorPrint(uni_string fmt, ...);
 uni_null displayBuffer(BufferPointer ptr_Buffer);
-sofia_long getFileSize(uni_string fname);
+uni_long getFileSize(uni_string fname);
 uni_int isNumber(const uni_string ns);
 uni_null startReader(uni_string, uni_string, uni_char, uni_int, uni_int);
 
@@ -258,9 +258,9 @@ uni_null bErrorPrint(uni_string fmt, ...) {
 ************************************************************
 */
 
-sofia_long getFileSize(uni_string fname) {
+uni_long getFileSize(uni_string fname) {
 	FILE* input;
-	sofia_long flength;
+	uni_long flength;
 	input = fopen(fname, "r");
 	if (input == NULL) {
 		bErrorPrint("%s%s", "Cannot open file: ", fname);

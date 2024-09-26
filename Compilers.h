@@ -96,10 +96,10 @@ typedef int				uni_int;
 typedef float			uni_float;
 typedef void			uni_null;
 
-typedef char			sofia_boln;
-typedef unsigned char	sofia_byte;
+typedef char			uni_boln;
+typedef unsigned char	uni_byte;
 
-typedef long			sofia_long;
+typedef long			uni_long;
 typedef double			uni_doub;
 
 /*
