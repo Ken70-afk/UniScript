@@ -269,8 +269,22 @@ uni_boln readerClear(BufferPointer const readerPointer) {
 */
 uni_boln readerFree(BufferPointer const readerPointer) {
 	/* TO_DO: Defensive programming */
+	/*uni_boln readerFree(BufferPointer const readerPointer) {
+    /* TO_DO: Defensive programming */
+	if (!readerPointer) {
+		return UNI_FALSE;  // Return false if the pointer is NULL
+	}
+
 	/* TO_DO: Free pointers */
-	return UNI_TRUE;
+	if (readerPointer->content) {
+		free(readerPointer->content);  // Free the buffer memory
+		readerPointer->content = NULL; // Set pointer to NULL to avoid dangling pointer
+	}
+
+	free(readerPointer);  // Free the reader structure itself
+
+	return UNI_TRUE;  // Return true if operation is successful
+
 }
 
 /*
@@ -289,10 +303,13 @@ uni_boln readerFree(BufferPointer const readerPointer) {
 */
 uni_boln readerIsFull(BufferPointer const readerPointer) {
 	/* TO_DO: Defensive programming */
-	/* TO_DO: Check flag if buffer is FUL */
-	return 0;
-}
+	if (!readerPointer) {
+		return UNI_FALSE;  // Return false if the pointer is NULL
+	}
 
+	/* TO_DO: Check if the buffer is marked as full */
+	return readerPointer->flags.isFull;  // Return true if the buffer is full
+}
 
 /*
 ***********************************************************
@@ -310,9 +327,14 @@ uni_boln readerIsFull(BufferPointer const readerPointer) {
 */
 uni_boln readerIsEmpty(BufferPointer const readerPointer) {
 	/* TO_DO: Defensive programming */
+	if (!readerPointer) {
+		return UNI_FALSE;  // Return false if the pointer is NULL
+	}
+
 	/* TO_DO: Check flag if buffer is EMP */
-	return 0;
+	return readerPointer->flags.isEmpty;  // Return true if the buffer is empty
 }
+
 
 /*
 ***********************************************************
