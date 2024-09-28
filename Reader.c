@@ -353,8 +353,19 @@ uni_boln readerIsEmpty(BufferPointer const readerPointer) {
 */
 uni_boln readerSetMark(BufferPointer const readerPointer, uni_int mark) {
 	/* TO_DO: Defensive programming */
+	if (!readerPointer) {
+		return UNI_FALSE;  // Invalid readerPointer
+	}
+
+	/* TO_DO: Check boundary conditions */
+	if (mark < 0 || mark > readerPointer->positions.wrte) {
+		return UNI_FALSE;  // Invalid mark position
+	}
+
 	/* TO_DO: Adjust mark */
-	return UNI_TRUE;
+	readerPointer->positions.mark = mark;
+
+	return UNI_TRUE;  // Mark successfully set
 }
 
 
@@ -373,16 +384,29 @@ uni_boln readerSetMark(BufferPointer const readerPointer, uni_int mark) {
 *************************************************************
 */
 uni_int readerPrint(BufferPointer const readerPointer) {
-	uni_int cont = 0;
-	uni_char c;
-	/* TO_DO: Defensive programming (including invalid chars) */
-	c = readerGetChar(readerPointer);
-	while (cont < readerPointer->positions.wrte) {
-		cont++;
-		printf("%c", c);
-		c = readerGetChar(readerPointer);
+	// TO_DO: Defensive programming (including invalid chars)
+	if (!readerPointer) {
+		return 0; // Return 0 if the pointer is invalid
 	}
-	return cont;
+
+	uni_int cont = 0; // Counter for the number of characters printed
+	uni_char c; // Variable to hold the character
+
+	// Loop until we have printed all characters or reached the end of the reader
+	while (cont < readerPointer->positions.wrte) {
+		c = readerGetChar(readerPointer); // Get the next character
+
+		// Check for invalid characters or the END flag
+		if (readerPointer->flags.isFull) {
+			break; // Exit the loop if the end of content is reached
+		}
+
+		// Print the character and increment the counter
+		printf("%c", c);
+		cont++; // Increment the counter
+	}
+
+	return cont; // Return the total number of characters printed
 }
 
 /*
@@ -402,16 +426,35 @@ uni_int readerPrint(BufferPointer const readerPointer) {
 *************************************************************
 */
 uni_int readerLoad(BufferPointer readerPointer, FILE* const fileDescriptor) {
-	uni_int size = 0;
-	uni_char c;
+	uni_int size = 0; // Counter for the number of characters read
+	uni_char c; // Variable to hold each character
+
 	/* TO_DO: Defensive programming */
-	while (!feof(fileDescriptor)) {
-		c = (uni_char)fgetc(fileDescriptor);
-		readerPointer = readerAddChar(readerPointer, c);
-		size++;
+	if (!readerPointer || !fileDescriptor) {
+		return 0; // Return 0 if the readerPointer or fileDescriptor is NULL
 	}
+
+	while (!feof(fileDescriptor)) {
+		c = (uni_char)fgetc(fileDescriptor); // Read one character from the file
+
+		// Check if we have reached the end of the file or encountered an error
+		if (feof(fileDescriptor)) {
+			break; // Exit the loop if end of file is reached
+		}
+		else if (ferror(fileDescriptor)) {
+			return size; // Return the size if there is an error reading the file
+		}
+
+		// Attempt to add the character to the reader
+		if (readerAddChar(readerPointer, c) == UNI_INVALID) {
+			ungetc(c, fileDescriptor); // Push back the character if it cannot be added
+			break; // Exit the loop since we can't add the character
+		}
+		size++; // Increment the size counter
+	}
+
 	/* TO_DO: Defensive programming */
-	return size;
+	return size; // Return the total number of characters read and added to the buffer
 }
 
 /*
@@ -430,9 +473,19 @@ uni_int readerLoad(BufferPointer readerPointer, FILE* const fileDescriptor) {
 */
 uni_boln readerRecover(BufferPointer const readerPointer) {
 	/* TO_DO: Defensive programming */
+	if (!readerPointer) {
+		return UNI_FALSE; // Return false if the readerPointer is NULL
+	}
+
 	/* TO_DO: Recover positions: read and mark must be zero */
+	readerPointer->positions.read = 0; // Reset read position to 0
+	readerPointer->positions.mark = 0; // Reset mark position to 0
+
 	/* TO_DO: Update flags */
-	return UNI_TRUE;
+	readerPointer->flags.isMoved = UNI_FALSE; // Reset the moved flag
+	readerPointer->flags.isFull = UNI_FALSE;  // Reset the full flag
+
+	return UNI_TRUE; // Return true to indicate success
 }
 
 
@@ -452,8 +505,19 @@ uni_boln readerRecover(BufferPointer const readerPointer) {
 */
 uni_boln readerRetract(BufferPointer const readerPointer) {
 	/* TO_DO: Defensive programming */
+	if (!readerPointer) {
+		return UNI_FALSE; // Return false if readerPointer is NULL
+	}
+
 	/* TO_DO: Retract (return 1 pos read) */
-	return UNI_TRUE;
+	if (readerPointer->positions.read > 0) {
+		readerPointer->positions.read--;  // Decrement the read position
+		return UNI_TRUE;  // Successfully retracted
+	}
+	else {
+		// If the read position is already at 0, it can't be decremented further
+		return UNI_FALSE;
+	}
 }
 
 
@@ -473,8 +537,19 @@ uni_boln readerRetract(BufferPointer const readerPointer) {
 */
 uni_boln readerRestore(BufferPointer const readerPointer) {
 	/* TO_DO: Defensive programming */
+	if (!readerPointer) {
+		return UNI_FALSE;  // Return false if readerPointer is NULL
+	}
+
 	/* TO_DO: Restore positions (read to mark) */
-	return UNI_TRUE;
+	if (readerPointer->positions.mark >= 0 && readerPointer->positions.mark <= readerPointer->positions.wrte) {
+		// Set the read position to the mark position
+		readerPointer->positions.read = readerPointer->positions.mark;
+		return UNI_TRUE;  // Success
+	}
+	else {
+		return UNI_FALSE;  // Mark position is invalid, return failure
+	}
 }
 
 
@@ -495,7 +570,22 @@ uni_boln readerRestore(BufferPointer const readerPointer) {
 */
 uni_char readerGetChar(BufferPointer const readerPointer) {
 	/* TO_DO: Defensive programming */
+	if (!readerPointer || !readerPointer->content) {
+		return READER_TERMINATOR;  // Return the end-of-string character if the pointer is NULL
+	}
+
 	/* TO_DO: Check condition to read/wrte */
+	if (readerPointer->positions.read >= readerPointer->positions.wrte) {
+		// Set the isRead flag when the read position reaches the write position
+		readerPointer->flags.isRead = UNI_TRUE;
+		return READER_TERMINATOR;  // Return end-of-string character when at the end of the reader
+	}
+	else {
+		// Reset the isRead flag since there are more characters to read
+		readerPointer->flags.isRead = UNI_FALSE;
+	}
+
+	// Return the current character and increment the read position
 	return readerPointer->content[readerPointer->positions.read++];
 }
 
@@ -517,6 +607,16 @@ uni_char readerGetChar(BufferPointer const readerPointer) {
 */
 uni_string readerGetContent(BufferPointer const readerPointer, uni_int pos) {
 	/* TO_DO: Defensive programming */
+	if (!readerPointer || !readerPointer->content) {
+		return NULL;  // Return NULL if readerPointer or content is invalid
+	}
+
+	/* TO_DO: Check boundary conditions */
+	if (pos < 0 || pos >= readerPointer->positions.wrte) {
+		return NULL;  // Return NULL if the pos value is out of bounds
+	}
+
+	// Return a pointer to the character at the specified position in the content
 	return readerPointer->content + pos;
 }
 
@@ -538,10 +638,13 @@ uni_string readerGetContent(BufferPointer const readerPointer, uni_int pos) {
 */
 uni_int readerGetPosRead(BufferPointer const readerPointer) {
 	/* TO_DO: Defensive programming */
-	/* TO_DO: Return read */
-	return 0;
-}
+	if (!readerPointer) {
+		return -1;  // Return -1 if readerPointer is NULL to indicate an invalid position
+	}
 
+	/* TO_DO: Return read */
+	return readerPointer->positions.read;
+}
 
 /*
 ***********************************************************
@@ -559,8 +662,12 @@ uni_int readerGetPosRead(BufferPointer const readerPointer) {
 */
 uni_int readerGetPosWrte(BufferPointer const readerPointer) {
 	/* TO_DO: Defensive programming */
+	if (readerPointer == UNI_INVALID) {
+		return UNI_ERROR;  // Return error if readerPointer is NULL
+	}
+
 	/* TO_DO: Return wrte */
-	return 0;
+	return readerPointer->positions.wrte;  // Return the current write position
 }
 
 
@@ -580,8 +687,12 @@ uni_int readerGetPosWrte(BufferPointer const readerPointer) {
 */
 uni_int readerGetPosMark(BufferPointer const readerPointer) {
 	/* TO_DO: Defensive programming */
+	if (readerPointer == UNI_INVALID) {
+		return UNI_ERROR;  // Return an error if readerPointer is NULL
+	}
+
 	/* TO_DO: Return mark */
-	return 0;
+	return readerPointer->positions.mark;  // Return the mark position in the buffer
 }
 
 
@@ -601,8 +712,12 @@ uni_int readerGetPosMark(BufferPointer const readerPointer) {
 */
 uni_int readerGetSize(BufferPointer const readerPointer) {
 	/* TO_DO: Defensive programming */
+	if (readerPointer == UNI_INVALID) {
+		return UNI_ERROR;  // Return an error if readerPointer is NULL
+	}
+
 	/* TO_DO: Return size */
-	return 0;
+	return readerPointer->size;  // Return the current size of the buffer
 }
 
 /*
@@ -621,8 +736,12 @@ uni_int readerGetSize(BufferPointer const readerPointer) {
 */
 uni_int readerGetInc(BufferPointer const readerPointer) {
 	/* TO_DO: Defensive programming */
+	if (readerPointer == UNI_INVALID) {
+		return UNI_ERROR;  // Return an error if readerPointer is NULL
+	}
+
 	/* TO_DO: Return increment */
-	return 0;
+	return readerPointer->increment;  // Return the current buffer increment
 }
 
 /*
@@ -641,8 +760,12 @@ uni_int readerGetInc(BufferPointer const readerPointer) {
 */
 uni_char readerGetMode(BufferPointer const readerPointer) {
 	/* TO_DO: Defensive programming */
+	if (readerPointer == UNI_INVALID) {
+		return UNI_ERROR;  // Return an error if readerPointer is NULL
+	}
+
 	/* TO_DO: Return mode */
-	return '\0';
+	return readerPointer->mode;  // Return the current mode (fixed / additive / multiplicative)
 }
 
 /*
@@ -659,7 +782,26 @@ uni_char readerGetMode(BufferPointer const readerPointer) {
 */
 uni_null readerPrintStat(BufferPointer const readerPointer) {
 	/* TO_DO: Defensive programming */
+	if (readerPointer == UNI_INVALID || readerPointer->content == UNI_INVALID) {
+		return;  // Exit the function if the readerPointer or its content is NULL
+	}
+
 	/* TO_DO: Updates the histogram */
+	printf("Reader statistics:\n");
+
+	uni_int first = 1; // To help with formatting commas between entries
+
+	for (uni_int i = 0; i < NCHAR; ++i) {
+		if (readerPointer->histogram[i] > 0) {  // Only print characters that appear at least once
+			if (!first) {
+				printf(", "); // Add a comma before each item except the first one
+			}
+			first = 0; // First entry printed, next ones will have a comma
+			printf("B[%c]=%d", i, readerPointer->histogram[i]);
+		}
+	}
+
+	printf("\n"); // End the line after printing the histogram
 }
 
 /*
@@ -677,8 +819,12 @@ uni_null readerPrintStat(BufferPointer const readerPointer) {
 */
 uni_int readerGetNumErrors(BufferPointer const readerPointer) {
 	/* TO_DO: Defensive programming */
+	if (readerPointer == UNI_INVALID) {
+		return UNI_ERROR;  // Return an error if readerPointer is NULL
+	}
+
 	/* TO_DO: Returns the number of errors */
-	return 0;
+	return readerPointer->numReaderErrors;  // Return the number of errors encountered
 }
 
 /*
@@ -698,7 +844,19 @@ uni_int readerGetNumErrors(BufferPointer const readerPointer) {
 
 uni_null readerCalcChecksum(BufferPointer readerPointer) {
 	/* TO_DO: Defensive programming */
+	if (readerPointer == UNI_INVALID || readerPointer->content == UNI_INVALID) {
+		return;  // Exit if the readerPointer or content is invalid
+	}
+
+	uni_int checksum = 0;  // Initialize the checksum
+
 	/* TO_DO: Calculate checksum */
+	for (uni_int i = 0; i < readerPointer->positions.wrte; ++i) {
+		checksum += (uni_byte)readerPointer->content[i];  // Sum the value of each character
+	}
+
+	// Store the checksum as an 8-bit value (use bitwise AND with 0xFF to mask only the lower 8 bits)
+	readerPointer->checksum = (uni_byte)(checksum & 0xFF);
 }
 
 /*
@@ -718,6 +876,15 @@ uni_null readerCalcChecksum(BufferPointer readerPointer) {
 
 uni_boln readerPrintFlags(BufferPointer readerPointer) {
 	/* TO_DO: Defensive programming */
+	if (readerPointer == UNI_INVALID) {
+		return UNI_FALSE;  // Return false if the readerPointer is NULL
+	}
+
 	/* TO_DO: Shows flags */
-	return UNI_TRUE;
+	printf("Flag[Empty] = %s\n", readerPointer->flags.isEmpty ? "True" : "False");
+	printf("Flag[Full] = %s\n", readerPointer->flags.isFull ? "True" : "False");
+	printf("Flag[Read] = %s\n", readerPointer->flags.isRead ? "True" : "False");
+	printf("Flag[Moved] = %s\n", readerPointer->flags.isMoved ? "True" : "False");
+
+	return UNI_TRUE;  // Return true to indicate successful flag display
 }
