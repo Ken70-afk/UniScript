@@ -96,8 +96,12 @@ BufferPointer readerCreate(uni_int size, uni_int increment, uni_char mode) {
 	BufferPointer readerPointer;
 	uni_int count = 0;
 	/* TO_DO: Defensive programming */
+	if (size < 0)
+		return UNI_INVALID;
 	if (!size)
 		size = READER_DEFAULT_SIZE;
+	if (increment < 0)
+		return UNI_INVALID;
 	if (!increment)
 		increment = READER_DEFAULT_INCREMENT;
 	if (!mode)
@@ -106,14 +110,30 @@ BufferPointer readerCreate(uni_int size, uni_int increment, uni_char mode) {
 	if (!readerPointer)
 		return UNI_INVALID;
 	readerPointer->content = (uni_string)malloc(size);
+
 	/* TO_DO: Defensive programming */
+	if (!readerPointer->content) {  // Handle allocation failure
+		free(readerPointer);  // Avoid memory leaks
+		return NULL;
+	}
+
 	/* TO_DO: Initialize the histogram */
-	/* TO_DO: Initialize errors */
+	for (int i = 0; i < NCHAR; i++) {
+		readerPointer->histogram[i] = 0;  // Clear the histogram (no characters processed)
+	}
 	readerPointer->mode = mode;
 	readerPointer->size = size;
 	readerPointer->increment = increment;
+	
+	/* TO_DO: Initialize errors */
+	readerPointer ->numReaderErrors = 0;
 	/* TO_DO: Initialize flags */
+	readerPointer->flags.isEmpty = UNI_TRUE;  // New buffer is empty
+	readerPointer->flags.isFull = UNI_FALSE;  // Buffer is not full initially
+	readerPointer->flags.isRead = UNI_FALSE;  // No data read yet
+	readerPointer->flags.isMoved = UNI_FALSE; // No memory reallocations yet
 	/* TO_DO: Default checksum */
+	readerPointer->checksum = 0;
 	return readerPointer;
 }
 
@@ -135,41 +155,73 @@ BufferPointer readerCreate(uni_int size, uni_int increment, uni_char mode) {
 */
 
 BufferPointer readerAddChar(BufferPointer readerPointer, uni_char ch) {
-	uni_string tempReader = UNI_INVALID;
-	uni_int newSize = 0;
-	uni_char tempChar = ' ';
+	uni_string tempReader = UNI_INVALID;  // Temporary variable for reallocation
+	uni_int newSize = 0;  // New size to be calculated based on the mode
+
 	/* TO_DO: Defensive programming */
-	/* TO_DO: Reset Realocation */
+	if (!readerPointer || ch < 0 || ch > 127) {
+		return UNI_INVALID;  // Return invalid if pointer is null or char is out of range
+	}
+
 	/* TO_DO: Test the inclusion of chars */
 	if (readerPointer->positions.wrte * (uni_int)sizeof(uni_char) < readerPointer->size) {
 		/* TO_DO: This buffer is NOT full */
+		readerPointer->content[readerPointer->positions.wrte++] = ch;
 	}
 	else {
 		/* TO_DO: Reset Full flag */
 		switch (readerPointer->mode) {
 		case MODE_FIXED:
 			/* TO_DO: Update the last position with Terminator */
-			break;
+			readerPointer->flags.isFull = UNI_TRUE; // Mark as full
+			readerPointer->content[readerPointer->positions.wrte] = READER_TERMINATOR;
+			return readerPointer;
+
 		case MODE_ADDIT:
 			/* TO_DO: Update size for Additive mode */
-			/* TO_DO: Defensive programming */
+			newSize = readerPointer->size + readerPointer->increment;
 			break;
+
 		case MODE_MULTI:
-			/* TO_DO: Update size for Additive mode */
-			/* TO_DO: Defensive programming */
+			/* TO_DO: Update size for Multiplicative mode */
+			newSize = readerPointer->size * readerPointer->increment;
 			break;
+
 		default:
+			return UNI_INVALID;  // Invalid mode
+		}
+
+		/* TO_DO: Defensive programming */
+		if (newSize <= 0 || newSize > READER_MAX_SIZE) {
 			return UNI_INVALID;
 		}
+
 		/* TO_DO: Reallocate */
-		/* TO_DO: Defensive programming */
-		return readerPointer;
+		tempReader = (uni_string)realloc(readerPointer->content, newSize * sizeof(uni_char));
+		if (!tempReader) {
+			return UNI_INVALID;  // Reallocation failed
+		}
+
+		/* Update the buffer with the new size and memory block */
+		readerPointer->content = tempReader;
+		readerPointer->size = newSize;
+		readerPointer->flags.isMoved = (readerPointer->content != tempReader);  // Set flag if memory address changed
+
+		/* Add the character after successful reallocation */
+		readerPointer->content[readerPointer->positions.wrte++] = ch;
 	}
+
 	/* TO_DO: Update the flags */
-	readerPointer->content[readerPointer->positions.wrte++] = ch;
-	/* TO_DO: Updates histogram */
+	readerPointer->flags.isFull = (readerPointer->positions.wrte == readerPointer->size);
+
+	/* TO_DO: Update histogram */
+	readerPointer->histogram[ch]++;
+
 	return readerPointer;
 }
+
+
+
 
 /*
 ***********************************************************
@@ -187,8 +239,17 @@ BufferPointer readerAddChar(BufferPointer readerPointer, uni_char ch) {
 */
 uni_boln readerClear(BufferPointer const readerPointer) {
 	/* TO_DO: Defensive programming */
+	if (!readerPointer)
+		return UNI_FALSE;
 	/* TO_DO: Adjust the write, mark and read to zero */
+	readerPointer->positions.wrte = 0;
+	readerPointer->positions.read = 0;
+	readerPointer->positions.mark = 0;
 	/* TO_DO: Adjust flags */
+	readerPointer->flags.isEmpty = UNI_TRUE;   // Buffer is now empty
+	readerPointer->flags.isFull = UNI_FALSE;   // Buffer is not full
+	readerPointer->flags.isRead = UNI_FALSE;   // Buffer hasn't been fully read
+	readerPointer->flags.isMoved = UNI_FALSE;  // Memory hasn't moved
 	return UNI_TRUE;
 }
 
