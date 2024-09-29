@@ -874,17 +874,52 @@ uni_null readerCalcChecksum(BufferPointer readerPointer) {
 *************************************************************
 */
 
-uni_boln readerPrintFlags(BufferPointer readerPointer) {
-	/* TO_DO: Defensive programming */
-	if (readerPointer == UNI_INVALID) {
-		return UNI_FALSE;  // Return false if the readerPointer is NULL
+uni_boln readerPrintFlags(BufferPointer const readerPointer) {
+	// Defensive programming: Check if readerPointer is NULL
+	if (readerPointer == NULL) {
+		fprintf(stderr, "Error: Invalid pointer.\n");
+		return UNI_FALSE;  // Return False to indicate the function did not execute successfully
 	}
 
-	/* TO_DO: Shows flags */
-	printf("Flag[Empty] = %s\n", readerPointer->flags.isEmpty ? "True" : "False");
-	printf("Flag[Full] = %s\n", readerPointer->flags.isFull ? "True" : "False");
-	printf("Flag[Read] = %s\n", readerPointer->flags.isRead ? "True" : "False");
-	printf("Flag[Moved] = %s\n", readerPointer->flags.isMoved ? "True" : "False");
+	// Check if the buffer is empty
+	if (readerPointer->positions.wrte == 0) {
+		readerPointer->flags.isEmpty = UNI_TRUE;  // Set isEmpty to True if no characters have been written
+	}
+	else {
+		readerPointer->flags.isEmpty = UNI_FALSE;  // Set isEmpty to False if there are written characters
+	}
 
-	return UNI_TRUE;  // Return true to indicate successful flag display
+	// Check if the buffer is full
+	if (readerPointer->positions.wrte == readerPointer->size) {
+		readerPointer->flags.isFull = UNI_TRUE;  // Buffer is full when write position equals size
+	}
+	else {
+		readerPointer->flags.isFull = UNI_FALSE;  // Buffer is not full otherwise
+	}
+
+	// Check if the buffer has been read from
+	if (readerPointer->positions.read > 0 && readerPointer->positions.read < readerPointer->positions.wrte) {
+		readerPointer->flags.isRead = UNI_TRUE;  // Set isRead to True if some data has been read
+	}
+	else {
+		readerPointer->flags.isRead = UNI_FALSE;  // Set isRead to False if nothing has been read
+	}
+
+	// Check if the buffer was moved
+	if (readerPointer->positions.read != readerPointer->positions.mark) {
+		readerPointer->flags.isMoved = UNI_TRUE;  // Set isMoved to True if the read pointer has moved past the mark
+	}
+	else {
+		readerPointer->flags.isMoved = UNI_FALSE;  // Set isMoved to False if read and mark positions are equal
+	}
+
+	// Print the flag statuses
+	printf("Buffer Flags:\n");
+	printf("isEmpty: %s\n", readerPointer->flags.isEmpty ? "True" : "False");
+	printf("isFull: %s\n", readerPointer->flags.isFull ? "True" : "False");
+	printf("isRead: %s\n", readerPointer->flags.isRead ? "True" : "False");
+	printf("isMoved: %s\n", readerPointer->flags.isMoved ? "True" : "False");
+
+	return UNI_TRUE;  // Return True to indicate the function executed successfully
 }
+
