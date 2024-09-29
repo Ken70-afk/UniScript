@@ -93,7 +93,7 @@ enum READER_MODE {
 #define READER_MAX_SIZE	INT_MAX-1	/* maximum capacity */ 
 
 #define READER_DEFAULT_SIZE			2500		/* default initial buffer reader capacity */
-#define READER_DEFAULT_INCREMENT	10		/* default increment factor */
+#define READER_DEFAULT_INCREMENT	100		/* default increment factor */
 
 #define NCHAR				128			/* Chars from 0 to 127 */
 
