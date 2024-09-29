@@ -9,7 +9,8 @@
       "name": "UniScript.exe",
       "args": [
         "1",
-        "README.txt"
+        "INPUT6_Big.uni",
+        "a"
       ]
     }
   ]
