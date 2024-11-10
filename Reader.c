@@ -128,10 +128,10 @@ BufferPointer readerCreate(uni_int size, uni_int increment, uni_char mode) {
 	/* TO_DO: Initialize errors */
 	readerPointer ->numReaderErrors = 0;
 	/* TO_DO: Initialize flags */
-	readerPointer->flags.isEmpty = UNI_TRUE;  // New buffer is empty
-	readerPointer->flags.isFull = UNI_FALSE;  // Buffer is not full initially
-	readerPointer->flags.isRead = UNI_FALSE;  // No data read yet
-	readerPointer->flags.isMoved = UNI_FALSE; // No memory reallocations yet
+	readerPointer->flags[FLAG_EMP] = UNI_TRUE;   // New buffer is empty
+	readerPointer->flags[FLAG_FUL] = UNI_FALSE;  // Buffer is not full initially
+	readerPointer->flags[FLAG_END] = UNI_FALSE;  // No data read yet
+	readerPointer->flags[FLAG_REL] = UNI_FALSE;  // No memory reallocations yet
 	/* TO_DO: Default checksum */
 	readerPointer->checksum = 0;
 	return readerPointer;
@@ -165,56 +165,61 @@ BufferPointer readerAddChar(BufferPointer readerPointer, uni_char ch) {
 
 	/* TO_DO: Test the inclusion of chars */
 	if (readerPointer->positions.wrte * (uni_int)sizeof(uni_char) < readerPointer->size) {
-		/* TO_DO: This buffer is NOT full */
+		/* Buffer is NOT full, add the character */
 		readerPointer->content[readerPointer->positions.wrte++] = ch;
 	}
 	else {
-		/* TO_DO: Reset Full flag */
+		/* Buffer is full, handle according to mode */
 		switch (readerPointer->mode) {
 		case MODE_FIXED:
-			/* TO_DO: Update the last position with Terminator */
-			readerPointer->flags.isFull = UNI_TRUE; // Mark as full
+			/* Fixed size mode - no reallocation allowed */
+			readerPointer->flags[FLAG_FUL] = UNI_TRUE; // Mark as full
 			readerPointer->content[readerPointer->positions.wrte] = READER_TERMINATOR;
 			return readerPointer;
 
 		case MODE_ADDIT:
-			/* TO_DO: Update size for Additive mode */
+			/* Additive mode - increase size by the increment */
 			newSize = readerPointer->size + readerPointer->increment;
 			break;
 
 		case MODE_MULTI:
-			/* TO_DO: Update size for Multiplicative mode */
+			/* Multiplicative mode - increase size by multiplying with the increment */
 			newSize = readerPointer->size * readerPointer->increment;
+			break;
+
+		case MODE_TOTAL:
+			/* Total mode ('t') - allocate the maximum size once */
+			newSize = READER_MAX_SIZE;
 			break;
 
 		default:
 			return UNI_INVALID;  // Invalid mode
 		}
 
-		/* TO_DO: Defensive programming */
+		/* TO_DO: Defensive programming - check if new size is valid */
 		if (newSize <= 0 || newSize > READER_MAX_SIZE) {
 			return UNI_INVALID;
 		}
 
-		/* TO_DO: Reallocate */
+		/* Reallocate buffer */
 		tempReader = (uni_string)realloc(readerPointer->content, newSize * sizeof(uni_char));
 		if (!tempReader) {
 			return UNI_INVALID;  // Reallocation failed
 		}
 
-		/* Update the buffer with the new size and memory block */
+		/* Update buffer and check if memory was relocated */
 		readerPointer->content = tempReader;
 		readerPointer->size = newSize;
-		readerPointer->flags.isMoved = (readerPointer->content != tempReader);  // Set flag if memory address changed
+		readerPointer->flags[FLAG_REL] = (readerPointer->content != tempReader);  // Set memory relocated flag
 
-		/* Add the character after successful reallocation */
+		/* Add character after reallocation */
 		readerPointer->content[readerPointer->positions.wrte++] = ch;
 	}
 
-	/* TO_DO: Update the flags */
-	readerPointer->flags.isFull = (readerPointer->positions.wrte == readerPointer->size);
+	/* Update full flag */
+	readerPointer->flags[FLAG_FUL] = (readerPointer->positions.wrte == readerPointer->size);
 
-	/* TO_DO: Update histogram */
+	/* Update histogram */
 	readerPointer->histogram[ch]++;
 
 	return readerPointer;
@@ -246,10 +251,10 @@ uni_boln readerClear(BufferPointer const readerPointer) {
 	readerPointer->positions.read = 0;
 	readerPointer->positions.mark = 0;
 	/* TO_DO: Adjust flags */
-	readerPointer->flags.isEmpty = UNI_TRUE;   // Buffer is now empty
-	readerPointer->flags.isFull = UNI_FALSE;   // Buffer is not full
-	readerPointer->flags.isRead = UNI_FALSE;   // Buffer hasn't been fully read
-	readerPointer->flags.isMoved = UNI_FALSE;  // Memory hasn't moved
+	readerPointer->flags[FLAG_EMP] = UNI_TRUE;   // Buffer is now empty
+	readerPointer->flags[FLAG_FUL]= UNI_FALSE;   // Buffer is not full
+	readerPointer->flags[FLAG_END] = UNI_FALSE;   // Buffer hasn't been fully read
+	readerPointer->flags[FLAG_REL] = UNI_FALSE;  // Memory hasn't moved
 	return UNI_TRUE;
 }
 
@@ -308,7 +313,7 @@ uni_boln readerIsFull(BufferPointer const readerPointer) {
 	}
 
 	/* TO_DO: Check if the buffer is marked as full */
-	return readerPointer->flags.isFull;  // Return true if the buffer is full
+	return readerPointer->flags[FLAG_FUL];  // Return true if the buffer is full
 }
 
 /*
@@ -332,7 +337,8 @@ uni_boln readerIsEmpty(BufferPointer const readerPointer) {
 	}
 
 	/* TO_DO: Check flag if buffer is EMP */
-	return readerPointer->flags.isEmpty;  // Return true if the buffer is empty
+	return readerPointer->flags[FLAG_EMP]
+		;  // Return true if the buffer is empty
 }
 
 
@@ -397,7 +403,7 @@ uni_int readerPrint(BufferPointer const readerPointer) {
 		c = readerGetChar(readerPointer); // Get the next character
 
 		// Check for invalid characters or the END flag
-		if (readerPointer->flags.isFull) {
+		if (readerPointer->flags[FLAG_FUL]) {
 			break; // Exit the loop if the end of content is reached
 		}
 
@@ -482,8 +488,8 @@ uni_boln readerRecover(BufferPointer const readerPointer) {
 	readerPointer->positions.mark = 0; // Reset mark position to 0
 
 	/* TO_DO: Update flags */
-	readerPointer->flags.isMoved = UNI_FALSE; // Reset the moved flag
-	readerPointer->flags.isFull = UNI_FALSE;  // Reset the full flag
+	readerPointer->flags[FLAG_REL] = UNI_FALSE; // Reset the moved flag
+	readerPointer->flags[FLAG_FUL] = UNI_FALSE;  // Reset the full flag
 
 	return UNI_TRUE; // Return true to indicate success
 }
@@ -577,12 +583,12 @@ uni_char readerGetChar(BufferPointer const readerPointer) {
 	/* TO_DO: Check condition to read/wrte */
 	if (readerPointer->positions.read >= readerPointer->positions.wrte) {
 		// Set the isRead flag when the read position reaches the write position
-		readerPointer->flags.isRead = UNI_TRUE;
+		readerPointer->flags[FLAG_END] = UNI_TRUE;
 		return READER_TERMINATOR;  // Return end-of-string character when at the end of the reader
 	}
 	else {
 		// Reset the isRead flag since there are more characters to read
-		readerPointer->flags.isRead = UNI_FALSE;
+		readerPointer->flags[FLAG_END] = UNI_FALSE;
 	}
 
 	// Return the current character and increment the read position
@@ -883,43 +889,48 @@ uni_boln readerPrintFlags(BufferPointer const readerPointer) {
 
 	// Check if the buffer is empty
 	if (readerPointer->positions.wrte == 0) {
-		readerPointer->flags.isEmpty = UNI_TRUE;  // Set isEmpty to True if no characters have been written
+		readerPointer->flags[FLAG_EMP]= UNI_TRUE;  // Set isEmpty to True if no characters have been written
 	}
 	else {
-		readerPointer->flags.isEmpty = UNI_FALSE;  // Set isEmpty to False if there are written characters
+		readerPointer->flags[FLAG_EMP] = UNI_FALSE;  // Set isEmpty to False if there are written characters
 	}
 
 	// Check if the buffer is full
 	if (readerPointer->positions.wrte == readerPointer->size) {
-		readerPointer->flags.isFull = UNI_TRUE;  // Buffer is full when write position equals size
+		readerPointer->flags[FLAG_FUL] = UNI_TRUE;  // Buffer is full when write position equals size
 	}
 	else {
-		readerPointer->flags.isFull = UNI_FALSE;  // Buffer is not full otherwise
+		readerPointer->flags[FLAG_FUL] = UNI_FALSE;  // Buffer is not full otherwise
 	}
 
 	// Check if the buffer has been read from
 	if (readerPointer->positions.read > 0 && readerPointer->positions.read < readerPointer->positions.wrte) {
-		readerPointer->flags.isRead = UNI_TRUE;  // Set isRead to True if some data has been read
+		readerPointer->flags[FLAG_END] = UNI_TRUE;  // Set isRead to True if some data has been read
 	}
 	else {
-		readerPointer->flags.isRead = UNI_FALSE;  // Set isRead to False if nothing has been read
+		readerPointer->flags[FLAG_END] = UNI_FALSE;  // Set isRead to False if nothing has been read
 	}
 
 	// Check if the buffer was moved
 	if (readerPointer->positions.read != readerPointer->positions.mark) {
-		readerPointer->flags.isMoved = UNI_TRUE;  // Set isMoved to True if the read pointer has moved past the mark
+		readerPointer->flags[FLAG_REL] = UNI_TRUE;  // Set  to True if the read pointer has moved past the mark
 	}
 	else {
-		readerPointer->flags.isMoved = UNI_FALSE;  // Set isMoved to False if read and mark positions are equal
+		readerPointer->flags[FLAG_REL] = UNI_FALSE;  // Set isMoved to False if read and mark positions are equal
 	}
 
 	// Print the flag statuses
 	printf("Buffer Flags:\n");
-	printf("isEmpty: %s\n", readerPointer->flags.isEmpty ? "True" : "False");
-	printf("isFull: %s\n", readerPointer->flags.isFull ? "True" : "False");
-	printf("isRead: %s\n", readerPointer->flags.isRead ? "True" : "False");
-	printf("isMoved: %s\n", readerPointer->flags.isMoved ? "True" : "False");
+	printf("isEmpty: %s\n", readerPointer->flags[FLAG_EMP] ? "True" : "False");
+	printf("isFull: %s\n", readerPointer->flags[FLAG_FUL] ? "True" : "False");
+	printf("isRead: %s\n", readerPointer->flags[FLAG_END] ? "True" : "False");
+	printf("isMoved: %s\n", readerPointer->flags[FLAG_REL] ? "True" : "False");
+	uni_boln flagValue = (readerPointer->flags[FLAG_EMP] << 0) |
+		(readerPointer->flags[FLAG_FUL] << 1) |
+		(readerPointer->flags[FLAG_END] << 2) |
+		(readerPointer->flags[FLAG_REL] << 3);
 
+	printf("The value of the flag field is: %02X\n", flagValue);
 	return UNI_TRUE;  // Return True to indicate the function executed successfully
 }
 

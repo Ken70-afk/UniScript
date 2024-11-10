@@ -81,7 +81,8 @@
 enum READER_MODE {
 	MODE_FIXED = 'f', /* Fixed mode (constant size) */
 	MODE_ADDIT = 'a', /* Additive mode (constant increment to be added) */
-	MODE_MULTI = 'm'  /* Multiplicative mode (constant increment to be multiplied) */
+	MODE_MULTI = 'm',  /* Multiplicative mode (constant increment to be multiplied) */
+	MODE_TOTAL = 't'
 };
 
 /* Constants about controls (not need to change) */
@@ -104,12 +105,21 @@ enum READER_MODE {
 /* TODO: Adjust datatypes */
 
 /* Offset declaration */
-typedef struct flag {
-	uni_boln isEmpty;			/* indicates if the buffer is empty */
-	uni_boln isFull;			/* indicates if the buffer is full */
-	uni_boln isRead;			/* indicates if the buffer was completely read */
-	uni_boln isMoved;			/* indicates if the buffer memory was changed */
-} Flag;
+//typedef struct flag {
+//	uni_boln FLAG_EMP;			/* indicates if the buffer is empty */
+//	uni_boln FLAG_FUL;			/* indicates if the buffer is full */
+//	uni_boln FLAG_END;			/* indicates if the buffer was completely read */
+//	uni_boln FLAG_REL;			/* indicates if the buffer memory was changed */
+//} Flag;
+
+#define FLAG_EMP 0x01    /* EMP flag bit 00000001 */
+#define FLAG_FUL 0x02    /* FUL flag bit 00000010 */
+#define FLAG_END 0x04    /* END flag bit 00000100 */
+#define FLAG_REL 0x08    /* REL flag bit 00001000*/
+
+typedef uni_char sofia_boln[4];  /* Define a 4-element boolean array for the flags */
+
+
 
 /* Offset declaration */
 typedef struct position {
@@ -118,13 +128,16 @@ typedef struct position {
 	uni_int mark;			/* the offset to the mark position (in chars) */
 } Position;
 
+
+
+
 /* Buffer structure */
 typedef struct bufferReader {
 	uni_string	content;			/* pointer to the beginning of character array (character buffer) */
 	uni_int		size;				/* current dynamic memory size (in bytes) allocated to character buffer */
 	uni_int		increment;			/* character array increment factor */
 	uni_char		mode;				/* operational mode indicator */
-	Flag			flags;				/* contains character array reallocation flag and end-of-buffer flag */
+	uni_boln			flags[4];				/* contains character array reallocation flag and end-of-buffer flag */
 	Position		positions;			/* Offset / position field */
 	uni_int		histogram[NCHAR];	/* Statistics of chars */
 	uni_int		numReaderErrors;	/* Number of errors from Reader */

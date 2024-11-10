@@ -7,11 +7,11 @@
       "project": "CMakeLists.txt",
       "projectTarget": "UniScript.exe",
       "name": "UniScript.exe",
-      "args": [
-        "1",
-        "INPUT6_Big.uni",
-        "a"
-      ]
+        "args": [
+            "1",
+            "INPUT6_Big.uni",
+            "t"
+        ]
     }
   ]
 }
