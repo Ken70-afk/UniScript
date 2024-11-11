@@ -57,10 +57,6 @@
 #include <_null.h> /* NULL pointer constant is defined there */
 #endif
 
-/*#pragma warning(1:4001) */	/*to enforce C89 type comments  - to make //comments an warning */
-
-/*#pragma warning(error:4001)*/	/* to enforce C89 comments - to make // comments an error */
-
 /* Constants */
 #define VID_LEN 20  /* variable identifier length */
 #define ERR_LEN 40  /* error message length */
@@ -68,13 +64,13 @@
 
 #define RTE_CODE 1  /* Value for run-time error */
 
-/* TO_DO: Define the number of tokens */
+/* Define the number of tokens */
 #define NUM_TOKENS 13
 
-/* TO_DO: Define Token codes - Create your token classes */
+/* Define Token codes - Create your token classes */
 enum TOKENS {
 	ERR_T,		/*  0: Error token */
-	MNID_T,		/*  1: Method name identifier token (start: &) */
+	MNID_T,		/*  1: Method name identifier token */
 	INL_T,		/*  2: Integer literal token */
 	STR_T,		/*  3: String literal token */
 	LPR_T,		/*  4: Left parenthesis token */
@@ -88,8 +84,8 @@ enum TOKENS {
 	CMT_T		/* 12: Comment token */
 };
 
-/* TO_DO: Define the list of keywords */
-static sofia_string tokenStrTable[NUM_TOKENS] = {
+/* Define the list of token strings */
+static uni_string tokenStrTable[NUM_TOKENS] = {
 	"ERR_T",
 	"MNID_T",
 	"INL_T",
@@ -105,128 +101,127 @@ static sofia_string tokenStrTable[NUM_TOKENS] = {
 	"CMT_T"
 };
 
-/* TO_DO: Operators token attributes */
+/* Operators token attributes */
 typedef enum ArithmeticOperators { OP_ADD, OP_SUB, OP_MUL, OP_DIV } AriOperator;
 typedef enum RelationalOperators { OP_EQ, OP_NE, OP_GT, OP_LT } RelOperator;
 typedef enum LogicalOperators { OP_AND, OP_OR, OP_NOT } LogOperator;
 typedef enum SourceEndOfFile { SEOF_0, SEOF_255 } EofOperator;
 
-/* TO_DO: Data structures for declaring the token and its attributes */
+/* Data structures for declaring the token and its attributes */
 typedef union TokenAttribute {
-	sofia_intg codeType;      /* integer attributes accessor */
+	uni_int codeType;      /* integer attributes accessor */
 	AriOperator arithmeticOperator;		/* arithmetic operator attribute code */
 	RelOperator relationalOperator;		/* relational operator attribute code */
 	LogOperator logicalOperator;		/* logical operator attribute code */
 	EofOperator seofType;				/* source-end-of-file attribute code */
-	sofia_intg intValue;				/* integer literal attribute (value) */
-	sofia_intg keywordIndex;			/* keyword index in the keyword table */
-	sofia_intg contentString;			/* string literal offset from the beginning of the string literal buffer (stringLiteralTable->content) */
-	sofia_real floatValue;				/* floating-point literal attribute (value) */
-	sofia_char idLexeme[VID_LEN + 1];	/* variable identifier token attribute */
-	sofia_char errLexeme[ERR_LEN + 1];	/* error token attribite */
+	uni_int intValue;				/* integer literal attribute (value) */
+	uni_int keywordIndex;			/* keyword index in the keyword table */
+	uni_int contentString;			/* string literal offset from the beginning of the string literal buffer */
+	uni_float floatValue;				/* floating-point literal attribute (value) */
+	uni_char idLexeme[VID_LEN + 1];	/* variable identifier token attribute */
+	uni_char errLexeme[ERR_LEN + 1];	/* error token attribute */
 } TokenAttribute;
 
-/* TO_DO: Should be used if no symbol table is implemented */
+/* Should be used if no symbol table is implemented */
 typedef struct idAttibutes {
-	sofia_byte flags;			/* Flags information */
+	uni_byte flags;			/* Flags information */
 	union {
-		sofia_intg intValue;				/* Integer value */
-		sofia_real floatValue;			/* Float value */
-		sofia_string stringContent;		/* String value */
+		uni_int intValue;				/* Integer value */
+		uni_float floatValue;			/* Float value */
+		uni_string stringContent;		/* String value */
 	} values;
 } IdAttibutes;
 
 /* Token declaration */
 typedef struct Token {
-	sofia_intg code;				/* token code */
+	uni_int code;				/* token code */
 	TokenAttribute attribute;	/* token attribute */
 	IdAttibutes   idAttribute;	/* not used in this scanner implementation - for further use */
 } Token;
 
 /* Scanner */
 typedef struct scannerData {
-	sofia_intg scanHistogram[NUM_TOKENS];	/* Statistics of chars */
+	uni_int scanHistogram[NUM_TOKENS];	/* Statistics of chars */
 } ScannerData, * pScanData;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/* TO_DO: Define lexeme FIXED classes */
-/* EOF definitions */
-#define EOS_CHR '\0'	// CH00
-#define EOF_CHR 0xFF	// CH01
-#define UND_CHR '_'		// CH02
-#define AMP_CHR '&'		// CH03
-#define QUT_CHR '\''	// CH04
-#define HST_CHR '#'		// CH05
-#define TAB_CHR '\t'	// CH06
-#define SPC_CHR ' '		// CH07
-#define NWL_CHR '\n'	// CH08
-#define SCL_CHR ';'		// CH09
-#define LPR_CHR '('		// CH10
-#define RPR_CHR ')'		// CH11
-#define LBR_CHR '{'		// CH12
-#define RBR_CHR '}'		// CH13
+/* Define lexeme FIXED classes for UniScript */
+#define EOS_CHR '\0'       // End of string
+#define EOF_CHR 0xFF       // End of file marker
+#define UND_CHR '_'        // Underscore character
+#define SLASH_CHR '/'      // Slash character for comments
+#define DQUT_CHR '"'       // Double quote for string literals
+#define HST_CHR '#'        // Hash for inline comments
+#define TAB_CHR '\t'       // Tab character
+#define SPC_CHR ' '        // Space character
+#define NWL_CHR '\n'       // Newline character
+#define SCL_CHR ';'        // Semicolon for end of statement
+#define LPR_CHR '('        // Left parenthesis for function calls
+#define RPR_CHR ')'        // Right parenthesis for function calls
+#define LBR_CHR '{'        // Left brace for block start
+#define RBR_CHR '}'        // Right brace for block end
+#define PLUS_CHR '+'       // Plus operator
+#define MINUS_CHR '-'      // Minus operator
+#define MUL_CHR '*'        // Multiplication operator
+#define DIV_CHR '/'        // Division operator
 
-/*  Special case tokens processed separately one by one in the token-driven part of the scanner:
- *  LPR_T, RPR_T, LBR_T, RBR_T, EOS_T, SEOF_T and special chars used for tokenis include _, & and ' */
+/* Error states and illegal state */
+#define ESNR    8          // Error state with no retract
+#define ESWR    9          // Error state with retract
+#define FS      10         // Illegal state
 
+/* State transition table definition */
+#define NUM_STATES        10
+#define CHAR_CLASSES      7
 
-/* TO_DO: Error states and illegal state */
-#define ESNR	8		/* Error state with no retract */
-#define ESWR	9		/* Error state with retract */
-#define FS		10		/* Illegal state */
-
- /* TO_DO: State transition table definition */
-#define NUM_STATES		10
-#define CHAR_CLASSES	8
-
-/* TO_DO: Transition table - type of states defined in separate table */
-static sofia_intg transitionTable[NUM_STATES][CHAR_CLASSES] = {
-/*    [A-z],[0-9],    _,    &,   \', SEOF,    #, other
-	   L(0), D(1), U(2), M(3), Q(4), E(5), C(6),  O(7) */
-	{     1, ESNR, ESNR, ESNR,    4, ESWR,	  6, ESNR},	// S0: NOAS
-	{     1,    1,    1,    2,	  3,    3,   3,    3},	// S1: NOAS
-	{    FS,   FS,   FS,   FS,   FS,   FS,	 FS,   FS},	// S2: ASNR (MVID)
-	{    FS,   FS,   FS,   FS,   FS,   FS,	 FS,   FS},	// S3: ASWR (KEY)
-	{     4,    4,    4,    4,    5, ESWR,	  4,    4},	// S4: NOAS
-	{    FS,   FS,   FS,   FS,   FS,   FS,	 FS,   FS},	// S5: ASNR (SL)
-	{     6,    6,    6,    6,    6, ESWR,	  7,    6},	// S6: NOAS
-	{    FS,   FS,   FS,   FS,   FS,   FS,	 FS,   FS},	// S7: ASNR (COM)
-	{    FS,   FS,   FS,   FS,   FS,   FS,	 FS,   FS},	// S8: ASNR (ES)
-	{    FS,   FS,   FS,   FS,   FS,   FS,	 FS,   FS}  // S9: ASWR (ER)
+/* Transition table - type of states defined in separate table */
+static uni_int transitionTable[NUM_STATES][CHAR_CLASSES] = {
+	/*    [A-z],[0-9],    _,   ",    /,   SEOF, other
+		   L(0), D(1), U(2), Q(3), S(4), E(5),  O(6) */
+		{     1, ESNR, ESNR,    4,    6, ESWR, ESNR}, // S0: NOAS - Initial state
+		{     1,    1,    1,    2,    3,    3,    3}, // S1: NOAS - Handling letters/numbers for identifiers
+		{    FS,   FS,   FS,   FS,   FS,   FS,   FS}, // S2: ASNR (ID) - Identifier accepted
+		{    FS,   FS,   FS,   FS,   FS,   FS,   FS}, // S3: ASWR (KEY) - Keyword accepted
+		{     4,    4,    4,    5,    4, ESWR,    4}, // S4: NOAS - String handling
+		{    FS,   FS,   FS,   FS,   FS,   FS,   FS}, // S5: ASNR (SL) - String literal accepted
+		{     6,    6,    6,    6,    8, ESWR,    6}, // S6: NOAS - Possible start of comment if followed by another /
+		{     7,    7,    7,    7,    7, ESWR,    7}, // S7: NOAS - Inside comment (continues until newline)
+		{    FS,   FS,   FS,   FS,   FS,   FS,   FS}, // S8: ASNR (COM) - Comment accepted when newline reached
+		{    FS,   FS,   FS,   FS,   FS,   FS,   FS}  // S9: ASWR (ER) - Error state
 };
 
 /* Define accepting states types */
-#define NOFS	0		/* not accepting state */
-#define FSNR	1		/* accepting state with no retract */
-#define FSWR	2		/* accepting state with retract */
+#define NOFS    0       /* not accepting state */
+#define FSNR    1       /* accepting state with no retract */
+#define FSWR    2       /* accepting state with retract */
 
-/* TO_DO: Define list of acceptable states */
-static sofia_intg stateType[NUM_STATES] = {
+/* List of acceptable states */
+static uni_int stateType[NUM_STATES] = {
 	NOFS, /* 00 */
 	NOFS, /* 01 */
-	FSNR, /* 02 (MID) - Methods */
-	FSWR, /* 03 (KEY) */
-	NOFS, /* 04 */
-	FSNR, /* 05 (SL) */
-	NOFS, /* 06 */
-	FSNR, /* 07 (COM) */
-	FSNR, /* 08 (Err1 - no retract) */
-	FSWR  /* 09 (Err2 - retract) */
+	FSNR, /* 02 (ID) - Identifier */
+	FSWR, /* 03 (KEY) - Keyword */
+	NOFS, /* 04 - Inside string */
+	FSNR, /* 05 (SL) - String literal */
+	NOFS, /* 06 - Possible comment start */
+	FSNR, /* 07 (COM) - Comment */
+	FSNR, /* 08 - Error state, no retract */
+	FSWR  /* 09 - Error state, with retract */
 };
 
 /*
 -------------------------------------------------
-TO_DO: Adjust your functions'definitions
+Function definitions
 -------------------------------------------------
 */
 
-/* Static (local) function  prototypes */
-sofia_intg			startScanner(BufferPointer psc_buf);
-static sofia_intg	nextClass(sofia_char c);					/* character class function */
-static sofia_intg	nextState(sofia_intg, sofia_char);		/* state machine function */
-sofia_void			printScannerData(ScannerData scData);
-Token				tokenizer(sofia_void);
+/* Static (local) function prototypes */
+uni_int			startScanner(BufferPointer psc_buf);
+static uni_int	nextClass(uni_char c);					/* character class function */
+static uni_int	nextState(uni_int, uni_char);		/* state machine function */
+uni_null		printScannerData(ScannerData scData);
+Token			tokenizer(uni_null);
 
 /*
 -------------------------------------------------
@@ -234,23 +229,22 @@ Automata definitions
 -------------------------------------------------
 */
 
-/* TO_DO: Pointer to function (of one char * argument) returning Token */
-typedef Token(*PTR_ACCFUN)(sofia_string lexeme);
+/* Pointer to function (of one char * argument) returning Token */
+typedef Token(*PTR_ACCFUN)(uni_string lexeme);
 
 /* Declare accepting states functions */
-Token funcSL	(sofia_string lexeme);
-Token funcIL	(sofia_string lexeme);
-Token funcID	(sofia_string lexeme);
-Token funcCMT   (sofia_string lexeme);
-Token funcKEY	(sofia_string lexeme);
-Token funcErr	(sofia_string lexeme);
+Token funcSL(uni_string lexeme);
+Token funcIL(uni_string lexeme);
+Token funcID(uni_string lexeme);
+Token funcCMT(uni_string lexeme);
+Token funcKEY(uni_string lexeme);
+Token funcErr(uni_string lexeme);
 
-/* 
- * Accepting function (action) callback table (array) definition 
- * If you do not want to use the typedef, the equvalent declaration is:
+/*
+ * Accepting function (action) callback table (array) definition
  */
 
-/* TO_DO: Define final state table */
+ /* Define final state table */
 static PTR_ACCFUN finalStateTable[NUM_STATES] = {
 	NULL,		/* -    [00] */
 	NULL,		/* -    [01] */
@@ -270,43 +264,28 @@ Language keywords
 -------------------------------------------------
 */
 
-/* TO_DO: Define the number of Keywords from the language */
-#define KWT_SIZE 11
+/* Define the number of keywords from the language */
+#define KWT_SIZE 13
 
-/* TO_DO: Define the list of keywords */
-static sofia_string keywordTable[KWT_SIZE] = {
-	"data",		/* KW00 */
-	"code",		/* KW01 */
-	"int",		/* KW02 */
-	"real",		/* KW03 */
-	"string",	/* KW04 */
-	"if",		/* KW05 */
-	"then",		/* KW06 */
-	"else",		/* KW07 */
-	"while",	/* KW08 */
-	"do",		/* KW09 */
-	"return"	/* KW10 */
+/* Define the list of keywords */
+static uni_string keywordTable[KWT_SIZE] = {
+	"function",    /* KW00 */
+	"print",       /* KW01 */
+	"let",         /* KW02 */
+	"const",       /* KW03 */
+	"if",          /* KW04 */
+	"else",        /* KW05 */
+	"while",       /* KW06 */
+	"for",         /* KW07 */
+	"break",       /* KW08 */
+	"continue",    /* KW09 */
+	"return",      /* KW10 */
+	"true",        /* KW11 */
+	"false"        /* KW12 */
 };
-
-/* NEW SECTION: About indentation */
-
-/*
- * Scanner attributes to be used (ex: including: intendation data
- */
-
-#define INDENT TAB_CHR  /* Tabulation */
-
-/* TO_DO: Should be used if no symbol table is implemented */
-typedef struct languageAttributes {
-	sofia_char indentationCharType;
-	sofia_intg indentationCurrentPos;
-	/* TO_DO: Include any extra attribute to be used in your scanner (OPTIONAL and FREE) */
-} LanguageAttributes;
-
-/* Number of errors */
-sofia_intg numScannerErrors;
 
 /* Scanner data */
 ScannerData scData;
 
 #endif
+

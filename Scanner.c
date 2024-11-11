@@ -85,14 +85,14 @@ TO_DO: Global vars definitions
 /* Global objects - variables */
 /* This buffer is used as a repository for string literals. */
 extern BufferPointer stringLiteralTable;	/* String literal table */
-sofia_intg line;								/* Current line number of the source code */
-extern sofia_intg errorNumber;				/* Defined in platy_st.c - run-time error number */
+uni_int line;								/* Current line number of the source code */
+extern uni_int errorNumber;				/* Defined in platy_st.c - run-time error number */
 
-extern sofia_intg stateType[NUM_STATES];
-extern sofia_string keywordTable[KWT_SIZE];
+extern uni_int stateType[NUM_STATES];
+extern uni_string keywordTable[KWT_SIZE];
 
 extern PTR_ACCFUN finalStateTable[NUM_STATES];
-extern sofia_intg transitionTable[NUM_STATES][CHAR_CLASSES];
+extern uni_int transitionTable[NUM_STATES][CHAR_CLASSES];
 
 /* Local(file) global objects - variables */
 static BufferPointer lexemeBuffer;			/* Pointer to temporary lexeme buffer */
@@ -106,9 +106,9 @@ static BufferPointer sourceBuffer;			/* Pointer to input source buffer */
  */
  /* TO_DO: Follow the standard and adjust datatypes */
 
-sofia_intg startScanner(BufferPointer psc_buf) {
+uni_int startScanner(BufferPointer psc_buf) {
 	/* TO_DO: Start histogram */
-	for (sofia_intg i=0; i<NUM_TOKENS;i++)
+	for (uni_int i=0; i<NUM_TOKENS;i++)
 		scData.scanHistogram[i] = 0;
 	/* Basic scanner initialization */
 	/* in case the buffer has been read previously  */
@@ -125,57 +125,52 @@ sofia_intg startScanner(BufferPointer psc_buf) {
  *		Main function of buffer, responsible to classify a char (or sequence
  *		of chars). In the first part, a specific sequence is detected (reading
  *		from buffer). In the second part, a pattern (defined by Regular Expression)
- *		is recognized and the appropriate function is called (related to final states 
+ *		is recognized and the appropriate function is called (related to final states
  *		in the Transition Diagram).
  ***********************************************************
  */
 
-Token tokenizer(sofia_void) {
+Token tokenizer(uni_null) {
+	Token currentToken = { 0 };
+	uni_char c;
+	uni_int state = 0;
+	uni_int lexStart;
+	uni_int lexEnd;
+	uni_int lexLength;
+	uni_int i;
 
-	/* TO_DO: Follow the standard and adjust datatypes */
-
-	Token currentToken = { 0 }; /* token to return after pattern recognition. Set all structure members to 0 */
-	sofia_char c;			/* input symbol */
-	sofia_intg state = 0;	/* initial state of the FSM */
-	sofia_intg lexStart;	/* start offset of a lexeme in the input char buffer (array) */
-	sofia_intg lexEnd;		/* end offset of a lexeme in the input char buffer (array)*/
-
-	sofia_intg lexLength;	/* token length */
-	sofia_intg i;			/* counter */
-	///sofia_char newc;		// new char
-
-	/* Starting lexeme */
-	sofia_string lexeme;	/* lexeme (to check the function) */
-	lexeme = (sofia_string)malloc(VID_LEN * sizeof(sofia_char));
-	if (!lexeme)
+	uni_string lexeme = (uni_string)malloc(VID_LEN * sizeof(uni_char));
+	if (!lexeme) {
+		fprintf(stderr, "Memory allocation failed for lexeme.\n");
 		return currentToken;
+	}
 	lexeme[0] = EOS_CHR;
 
-	while (1) { /* endless loop broken by token returns it will generate a warning */
+	while (1) {
 		c = readerGetChar(sourceBuffer);
 
-		// TO_DO: Defensive programming
-		if (c < 0 || c >= NCHAR)
+		if (c < 0 || c >= NCHAR) {
+			fprintf(stderr, "Invalid character encountered.\n");
 			return currentToken;
+		}
 
-		/* ------------------------------------------------------------------------
-			Part 1: Implementation of token driven scanner.
-			Every token is possessed by its own dedicated code
-			-----------------------------------------------------------------------
-		*/
-
-		/* TO_DO: All patterns that do not require accepting functions */
 		switch (c) {
-
-		/* Cases for spaces */
 		case SPC_CHR:
 		case TAB_CHR:
 			break;
 		case NWL_CHR:
 			line++;
 			break;
-
-		/* Cases for symbols */
+		case SLASH_CHR: {
+			uni_char nextChar = readerGetChar(sourceBuffer);
+			if (nextChar == SLASH_CHR) {
+				return funcCMT("//");
+			}
+			else {
+				readerRetract(sourceBuffer);
+			}
+			break;
+		}
 		case SCL_CHR:
 			currentToken.code = EOS_T;
 			scData.scanHistogram[currentToken.code]++;
@@ -196,7 +191,6 @@ Token tokenizer(sofia_void) {
 			currentToken.code = RBR_T;
 			scData.scanHistogram[currentToken.code]++;
 			return currentToken;
-		/* Cases for END OF FILE */
 		case EOS_CHR:
 			currentToken.code = SEOF_T;
 			scData.scanHistogram[currentToken.code]++;
@@ -208,50 +202,45 @@ Token tokenizer(sofia_void) {
 			currentToken.attribute.seofType = SEOF_255;
 			return currentToken;
 
-		/* ------------------------------------------------------------------------
-			Part 2: Implementation of Finite State Machine (DFA) or Transition Table driven Scanner
-			Note: Part 2 must follow Part 1 to catch the illegal symbols
-			-----------------------------------------------------------------------
-		*/
-
-		/* TO_DO: Adjust / check the logic for your language */
-
-		default: // general case
+		default:
 			state = nextState(state, c);
 			lexStart = readerGetPosRead(sourceBuffer) - 1;
 			readerSetMark(sourceBuffer, lexStart);
-			int pos = 0;
+
 			while (stateType[state] == NOFS) {
 				c = readerGetChar(sourceBuffer);
 				state = nextState(state, c);
-				pos++;
 			}
+
 			if (stateType[state] == FSWR)
 				readerRetract(sourceBuffer);
+
 			lexEnd = readerGetPosRead(sourceBuffer);
 			lexLength = lexEnd - lexStart;
-			lexemeBuffer = readerCreate((sofia_intg)lexLength + 2, 0, MODE_FIXED);
+			lexemeBuffer = readerCreate((uni_int)lexLength + 2, 0, MODE_FIXED);
+
 			if (!lexemeBuffer) {
-				fprintf(stderr, "Scanner error: Can not create buffer\n");
+				fprintf(stderr, "Scanner error: Cannot create lexeme buffer.\n");
 				exit(1);
 			}
+
 			readerRestore(sourceBuffer);
 			for (i = 0; i < lexLength; i++)
 				readerAddChar(lexemeBuffer, readerGetChar(sourceBuffer));
 			readerAddChar(lexemeBuffer, READER_TERMINATOR);
 			lexeme = readerGetContent(lexemeBuffer, 0);
-			// TO_DO: Defensive programming
-			if (!lexeme)
+
+			if (!lexeme) {
+				fprintf(stderr, "Error: Null lexeme encountered.\n");
 				return currentToken;
+			}
+
 			currentToken = (*finalStateTable[state])(lexeme);
 			readerRestore(lexemeBuffer);
 			return currentToken;
-		} // switch
-
-	} //while
-
-} // tokenizer
-
+		}
+	}
+}
 
 /*
  ************************************************************
@@ -279,9 +268,9 @@ Token tokenizer(sofia_void) {
  */
  /* TO_DO: Just change the datatypes */
 
-sofia_intg nextState(sofia_intg state, sofia_char c) {
-	sofia_intg col;
-	sofia_intg next;
+uni_int nextState(uni_int state, uni_char c) {
+	uni_int col;
+	uni_int next;
 	col = nextClass(c);
 	next = transitionTable[state][col];
 	if (DEBUG)
@@ -307,35 +296,32 @@ sofia_intg nextState(sofia_intg state, sofia_char c) {
 /* TO_DO: Use your column configuration */
 
 /* Adjust the logic to return next column in TT */
-/*    [A-z],[0-9],    _,    &,   \', SEOF,    #, other
-	   L(0), D(1), U(2), M(3), Q(4), E(5), C(6),  O(7) */
+/*    [A-z],[0-9],    _,    ",   /,   SEOF, other
+	   L(0), D(1), U(2), Q(3), S(4), E(5),  O(6) */
 
-sofia_intg nextClass(sofia_char c) {
-	sofia_intg val = -1;
+uni_int nextClass(uni_char c) {
+	uni_int val = -1;
 	switch (c) {
 	case UND_CHR:
-		val = 2;
+		val = 2; // Underscore
 		break;
-	case AMP_CHR:
-		val = 3;
+	case DQUT_CHR:
+		val = 3; // Double quote for string literals
 		break;
-	case QUT_CHR:
-		val = 4;
-		break;
-	case HST_CHR:
-		val = 6;
+	case SLASH_CHR:
+		val = 4; // Slash for starting comments
 		break;
 	case EOS_CHR:
 	case EOF_CHR:
-		val = 5;
+		val = 5; // End of source or file
 		break;
 	default:
 		if (isalpha(c))
-			val = 0;
+			val = 0; // Letters
 		else if (isdigit(c))
-			val = 1;
+			val = 1; // Digits
 		else
-			val = 7;
+			val = 6; // Other
 	}
 	return val;
 }
@@ -344,50 +330,53 @@ sofia_intg nextClass(sofia_char c) {
  ************************************************************
  * Acceptance State Function COM
  *		Function responsible to identify COM (comments).
- ***********************************************************
+ ************************************************************
  */
- /* TO_DO: Adjust the function for IL */
-
-Token funcCMT(sofia_string lexeme) {
+Token funcCMT(uni_string lexeme) {
 	Token currentToken = { 0 };
-	sofia_intg i = 0, len = (sofia_intg)strlen(lexeme);
-	currentToken.attribute.contentString = readerGetPosWrte(stringLiteralTable);
-	for (i = 1; i < len - 1; i++) {
-		if (lexeme[i] == NWL_CHR)
-			line++;
-	}
-	currentToken.code = CMT_T;
+	currentToken.code = CMT_T;  // Comment token code
+
+	// Consume characters until newline or EOF to ignore the comment content
+	uni_char c;
+	while ((c = readerGetChar(sourceBuffer)) != NWL_CHR && c != EOS_CHR && c != EOF_CHR) {}
+
 	scData.scanHistogram[currentToken.code]++;
 	return currentToken;
 }
 
 
- /*
-  ************************************************************
-  * Acceptance State Function IL
-  *		Function responsible to identify IL (integer literals).
-  * - It is necessary respect the limit (ex: 2-byte integer in C).
-  * - In the case of larger lexemes, error shoul be returned.
-  * - Only first ERR_LEN characters are accepted and eventually,
-  *   additional three dots (...) should be put in the output.
-  ***********************************************************
-  */
-  /* TO_DO: Adjust the function for IL */
 
-Token funcIL(sofia_string lexeme) {
+/*
+ ************************************************************
+ * Acceptance State Function IL
+ *		Function responsible to identify IL (integer literals).
+ * - It is necessary to respect the limit (ex: 2-byte integer in C).
+ * - In the case of larger lexemes, an error should be returned.
+ * - Only the first ERR_LEN characters are accepted, and if longer,
+ *   add three dots (...) to indicate truncation.
+ ***********************************************************
+ */
+
+Token funcIL(uni_string lexeme) {
 	Token currentToken = { 0 };
-	sofia_long tlong;
+	uni_long tlong;
+
+	// Check if lexeme length exceeds integer limit; handle error if too long
 	if (lexeme[0] != EOS_CHR && strlen(lexeme) > NUM_LEN) {
 		currentToken = (*finalStateTable[ESNR])(lexeme);
 	}
 	else {
+		// Convert lexeme to a long integer
 		tlong = atol(lexeme);
+
+		// Ensure integer is within range for short integers
 		if (tlong >= 0 && tlong <= SHRT_MAX) {
 			currentToken.code = INL_T;
 			scData.scanHistogram[currentToken.code]++;
-			currentToken.attribute.intValue = (sofia_intg)tlong;
+			currentToken.attribute.intValue = (uni_int)tlong;
 		}
 		else {
+			// If out of range, handle as an error token
 			currentToken = (*finalStateTable[ESNR])(lexeme);
 		}
 	}
@@ -398,62 +387,50 @@ Token funcIL(sofia_string lexeme) {
 /*
  ************************************************************
  * Acceptance State Function ID
- *		In this function, the pattern for IDs must be recognized.
- *		Since keywords obey the same pattern, is required to test if
- *		the current lexeme matches with KW from language.
- *	- Remember to respect the limit defined for lexemes (VID_LEN) and
- *	  set the lexeme to the corresponding attribute (vidLexeme).
- *    Remember to end each token with the \0.
- *  - Suggestion: Use "strncpy" function.
+ *		This function identifies identifiers (IDs) and keywords.
+ * - Checks if the lexeme matches a keyword in UniScript.
+ * - If not a keyword, it treats the lexeme as a general identifier.
+ * - Enforces VID_LEN limit for identifier length and null-terminates.
  ***********************************************************
  */
- /* TO_DO: Adjust the function for ID */
+Token funcID(uni_string lexeme) {
+	Token currentToken = funcKEY(lexeme);  // Check if lexeme is a keyword
 
-Token funcID(sofia_string lexeme) {
-	Token currentToken = { 0 };
-	size_t length = strlen(lexeme);
-	sofia_char lastch = lexeme[length - 1];
-	sofia_intg isID = SOFIA_FALSE;
-	switch (lastch) {
-		case AMP_CHR:
-			currentToken.code = MNID_T;
-			scData.scanHistogram[currentToken.code]++;
-			isID = SOFIA_TRUE;
-			break;
-		default:
-			// Test Keyword
-			///lexeme[length - 1] = EOS_CHR;
-			currentToken = funcKEY(lexeme);
-			break;
-	}
-	if (isID == SOFIA_TRUE) {
-		strncpy(currentToken.attribute.idLexeme, lexeme, VID_LEN);
-		currentToken.attribute.idLexeme[VID_LEN] = EOS_CHR;
-	}
+	if (currentToken.code == KW_T) return currentToken;  // Return if it's a keyword
+
+	// Not a keyword, so treat it as an identifier
+	currentToken.code = MNID_T;
+	strncpy(currentToken.attribute.idLexeme, lexeme, VID_LEN);
+	currentToken.attribute.idLexeme[VID_LEN] = EOS_CHR;  // Null-terminate
+
+	scData.scanHistogram[currentToken.code]++;
 	return currentToken;
 }
+
 
 
 /*
 ************************************************************
  * Acceptance State Function SL
- *		Function responsible to identify SL (string literals).
- * - The lexeme must be stored in the String Literal Table 
- *   (stringLiteralTable). You need to include the literals in 
- *   this structure, using offsets. Remember to include \0 to
- *   separate the lexemes. Remember also to incremente the line.
+ *		Function responsible for identifying string literals (SL).
+ * - Stores string literals in the String Literal Table
+ *   (stringLiteralTable), ensuring each string ends with '\0'.
+ * - Increments the line count for any newline character within the string.
+ * - Handles cases where the end quote is missing by returning an error token.
  ***********************************************************
  */
-/* TO_DO: Adjust the function for SL */
-
-Token funcSL(sofia_string lexeme) {
+Token funcSL(uni_string lexeme) {
 	Token currentToken = { 0 };
-	sofia_intg i = 0, len = (sofia_intg)strlen(lexeme);
+	uni_int i = 0, len = (uni_int)strlen(lexeme);
 	currentToken.attribute.contentString = readerGetPosWrte(stringLiteralTable);
+
+	// Add each character to the string literal table except the starting and ending quotes
 	for (i = 1; i < len - 1; i++) {
 		if (lexeme[i] == NWL_CHR)
-			line++;
+			line++;  // Increment line count if newline is encountered
+
 		if (!readerAddChar(stringLiteralTable, lexeme[i])) {
+			// If adding to string table fails, set runtime error
 			currentToken.code = RTE_T;
 			scData.scanHistogram[currentToken.code]++;
 			strcpy(currentToken.attribute.errLexeme, "Run Time Error:");
@@ -461,6 +438,8 @@ Token funcSL(sofia_string lexeme) {
 			return currentToken;
 		}
 	}
+
+	// Null-terminate the string in the table
 	if (!readerAddChar(stringLiteralTable, EOS_CHR)) {
 		currentToken.code = RTE_T;
 		scData.scanHistogram[currentToken.code]++;
@@ -468,66 +447,78 @@ Token funcSL(sofia_string lexeme) {
 		errorNumber = RTE_CODE;
 		return currentToken;
 	}
+
 	currentToken.code = STR_T;
 	scData.scanHistogram[currentToken.code]++;
 	return currentToken;
 }
 
-
 /*
 ************************************************************
- * This function checks if one specific lexeme is a keyword.
- * - Tip: Remember to use the keywordTable to check the keywords.
+ * Acceptance State Function KEY
+ *		Function responsible for identifying keywords (KW).
+ * - Checks if the lexeme matches any entry in the keyword table.
+ * - If a match is found, assigns KW_T as the token code.
+ * - If no match is found, calls funcErr to handle it as an error.
  ***********************************************************
  */
- /* TO_DO: Adjust the function for Keywords */
-
-Token funcKEY(sofia_string lexeme) {
+Token funcKEY(uni_string lexeme) {
 	Token currentToken = { 0 };
-	sofia_intg kwindex = -1, j = 0;
-	sofia_intg len = (sofia_intg)strlen(lexeme);
-	///lexeme[len - 1] = EOS_CHR;
-	for (j = 0; j < KWT_SIZE; j++)
-		if (!strcmp(lexeme, &keywordTable[j][0]))
+	uni_int kwindex = -1, j = 0;
+	uni_int len = (uni_int)strlen(lexeme);
+
+	// Compare the lexeme against each keyword in the keyword table
+	for (j = 0; j < KWT_SIZE; j++) {
+		if (!strcmp(lexeme, keywordTable[j])) {
 			kwindex = j;
+			break; // Exit loop if a match is found
+		}
+	}
+
+	// If a keyword is found, set token code to KW_T and assign the keyword index
 	if (kwindex != -1) {
 		currentToken.code = KW_T;
 		scData.scanHistogram[currentToken.code]++;
-		currentToken.attribute.codeType = kwindex;
+		currentToken.attribute.keywordIndex = kwindex;
 	}
 	else {
+		// If no keyword match, handle as an error
 		currentToken = funcErr(lexeme);
 	}
+
 	return currentToken;
 }
-
 
 /*
 ************************************************************
  * Acceptance State Function Error
- *		Function responsible to deal with ERR token.
- * - This function uses the errLexeme, respecting the limit given
- *   by ERR_LEN. If necessary, use three dots (...) to use the
- *   limit defined. The error lexeme contains line terminators,
- *   so remember to increment line.
+ *		Function responsible for handling ERR tokens.
+ * - This function uses errLexeme, respecting the length limit ERR_LEN.
+ * - If lexeme exceeds ERR_LEN, it truncates the lexeme and appends "...".
+ * - The function updates the line count if newlines are present in the lexeme.
  ***********************************************************
  */
- /* TO_DO: Adjust the function for Errors */
-
-Token funcErr(sofia_string lexeme) {
+Token funcErr(uni_string lexeme) {
 	Token currentToken = { 0 };
-	sofia_intg i = 0, len = (sofia_intg)strlen(lexeme);
+	uni_int i = 0, len = (uni_int)strlen(lexeme);
+
+	// Truncate lexeme if it exceeds ERR_LEN, adding ellipsis if needed
 	if (len > ERR_LEN) {
 		strncpy(currentToken.attribute.errLexeme, lexeme, ERR_LEN - 3);
-		currentToken.attribute.errLexeme[ERR_LEN - 3] = EOS_CHR;
-		strcat(currentToken.attribute.errLexeme, "...");
+		currentToken.attribute.errLexeme[ERR_LEN - 3] = EOS_CHR; // Null-terminate after truncation
+		strcat(currentToken.attribute.errLexeme, "..."); // Append ellipsis to indicate truncation
 	}
 	else {
-		strcpy(currentToken.attribute.errLexeme, lexeme);
+		strcpy(currentToken.attribute.errLexeme, lexeme); // Copy lexeme directly if within limit
 	}
-	for (i = 0; i < len; i++)
+
+	// Update line count based on newline characters in the lexeme
+	for (i = 0; i < len; i++) {
 		if (lexeme[i] == NWL_CHR)
 			line++;
+	}
+
+	// Assign error token code and update histogram
 	currentToken.code = ERR_T;
 	scData.scanHistogram[currentToken.code]++;
 	return currentToken;
@@ -540,14 +531,14 @@ Token funcErr(sofia_string lexeme) {
  ***********************************************************
  */
 
-sofia_void printToken(Token t) {
-	extern sofia_string keywordTable[]; /* link to keyword table in */
+uni_null printToken(Token t) {
+	extern uni_string keywordTable[]; /* Link to keyword table */
 	switch (t.code) {
 	case RTE_T:
 		printf("RTE_T\t\t%s", t.attribute.errLexeme);
-		/* Call here run-time error handling component */
+		/* Handle run-time error if present */
 		if (errorNumber) {
-			printf("%d", errorNumber);
+			printf(" [Error Code: %d]", errorNumber);
 			exit(errorNumber);
 		}
 		printf("\n");
@@ -556,14 +547,20 @@ sofia_void printToken(Token t) {
 		printf("ERR_T\t\t%s\n", t.attribute.errLexeme);
 		break;
 	case SEOF_T:
-		printf("SEOF_T\t\t%d\t\n", t.attribute.seofType);
+		printf("SEOF_T\t\t%d\n", t.attribute.seofType);
 		break;
 	case MNID_T:
 		printf("MNID_T\t\t%s\n", t.attribute.idLexeme);
 		break;
 	case STR_T:
-		printf("STR_T\t\t%d\t ", (sofia_intg)t.attribute.codeType);
-		printf("%s\n", readerGetContent(stringLiteralTable, (sofia_intg)t.attribute.codeType));
+		printf("STR_T\t\t%d\t", (uni_int)t.attribute.contentString);
+		/* Ensure content exists before printing */
+		if (stringLiteralTable != NULL) {
+			printf("%s\n", readerGetContent(stringLiteralTable, (uni_int)t.attribute.contentString));
+		}
+		else {
+			printf("(null)\n");
+		}
 		break;
 	case LPR_T:
 		printf("LPR_T\n");
@@ -578,7 +575,13 @@ sofia_void printToken(Token t) {
 		printf("RBR_T\n");
 		break;
 	case KW_T:
-		printf("KW_T\t\t%s\n", keywordTable[t.attribute.codeType]);
+		/* Ensure keyword index is within bounds */
+		if (t.attribute.keywordIndex >= 0 && t.attribute.keywordIndex < KWT_SIZE) {
+			printf("KW_T\t\t%s\n", keywordTable[t.attribute.keywordIndex]);
+		}
+		else {
+			printf("KW_T\t\t(Invalid Keyword Index)\n");
+		}
 		break;
 	case CMT_T:
 		printf("CMT_T\n");
@@ -600,7 +603,7 @@ sofia_void printToken(Token t) {
  *	- Void (procedure)
  ***********************************************************
  */
-sofia_void printScannerData(ScannerData scData) {
+uni_null printScannerData(ScannerData scData) {
 	/* Print Scanner statistics */
 	printf("Statistics:\n");
 	printf("----------------------------------\n");
