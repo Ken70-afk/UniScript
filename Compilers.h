@@ -123,10 +123,11 @@ Main functions signatures
 ------------------------------------------------------------
 */
 uni_int mainReader(uni_int argc, uni_string* argv);
+uni_int mainScanner(uni_int argc, uni_string* argv);
+
 /* TO_DO: Remove comment in next assignments */
 /*
-sofia_intg mainScanner(sofia_intg argc, sofia_string* argv);
-sofia_intg mainParser(sofia_intg argc, sofia_string* argv);
+uni_int mainParser(uni_int argc, uni_string* argv);
 */
 
 uni_null printLogo();

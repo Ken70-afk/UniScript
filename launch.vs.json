@@ -8,8 +8,8 @@
       "projectTarget": "UniScript.exe",
       "name": "UniScript.exe",
         "args": [
-            "1",
-            "INPUT6_Big.uni",
+            "2",
+            "HELLO.uni",
             "t"
         ]
     }
