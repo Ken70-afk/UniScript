@@ -82,6 +82,7 @@ TO_DO: Global vars definitions
 ----------------------------------------------------------------
 */
 
+uni_boln expectMethod = UNI_FALSE;
 /* Global objects - variables */
 /* This buffer is used as a repository for string literals. */
 extern BufferPointer stringLiteralTable;	/* String literal table */
@@ -235,6 +236,15 @@ Token tokenizer(uni_null) {
 				return currentToken;
 			}
 
+			uni_char lookahead = readerGetChar(sourceBuffer);
+			if (lookahead == LPR_CHR) {
+				expectMethod = UNI_TRUE;
+			}
+			else {
+				expectMethod = UNI_FALSE;
+				readerRetract(sourceBuffer);  // Retract if not a method
+			}
+
 			currentToken = (*finalStateTable[state])(lexeme);
 			readerRestore(lexemeBuffer);
 			return currentToken;
@@ -347,37 +357,45 @@ Token funcCMT(uni_string lexeme) {
 
 
 /*
- ************************************************************
- * Acceptance State Function IL
- *		Function responsible to identify IL (integer literals).
- * - It is necessary to respect the limit (ex: 2-byte integer in C).
- * - In the case of larger lexemes, an error should be returned.
- * - Only the first ERR_LEN characters are accepted, and if longer,
- *   add three dots (...) to indicate truncation.
- ***********************************************************
- */
+************************************************************
+* Acceptance State Function IL
+*		Function responsible to identify IL (integer literals).
+* - It respects the integer size limit (e.g., 2-byte integer in C).
+* - If the integer literal is too large, it returns an error token.
+* - Only the first ERR_LEN characters are accepted. If exceeded,
+*   additional characters are replaced with "..." in the error lexeme.
+***********************************************************
+*/
 
 Token funcIL(uni_string lexeme) {
 	Token currentToken = { 0 };
 	uni_long tlong;
 
-	// Check if lexeme length exceeds integer limit; handle error if too long
+	// Check if lexeme exceeds allowed integer literal length
 	if (lexeme[0] != EOS_CHR && strlen(lexeme) > NUM_LEN) {
-		currentToken = (*finalStateTable[ESNR])(lexeme);
+		// Exceeds length: handle as an error token
+		strncpy(currentToken.attribute.errLexeme, lexeme, ERR_LEN - 3);
+		currentToken.attribute.errLexeme[ERR_LEN - 3] = EOS_CHR;
+		strcat(currentToken.attribute.errLexeme, "...");
+		currentToken.code = ERR_T;
+		scData.scanHistogram[ERR_T]++;
 	}
 	else {
-		// Convert lexeme to a long integer
+		// Convert lexeme to long integer
 		tlong = atol(lexeme);
-
-		// Ensure integer is within range for short integers
+		// Validate integer range
 		if (tlong >= 0 && tlong <= SHRT_MAX) {
 			currentToken.code = INL_T;
 			scData.scanHistogram[currentToken.code]++;
 			currentToken.attribute.intValue = (uni_int)tlong;
 		}
 		else {
-			// If out of range, handle as an error token
-			currentToken = (*finalStateTable[ESNR])(lexeme);
+			// Out of range: handle as an error token
+			strncpy(currentToken.attribute.errLexeme, lexeme, ERR_LEN - 3);
+			currentToken.attribute.errLexeme[ERR_LEN - 3] = EOS_CHR;
+			strcat(currentToken.attribute.errLexeme, "...");
+			currentToken.code = ERR_T;
+			scData.scanHistogram[ERR_T]++;
 		}
 	}
 	return currentToken;
@@ -420,37 +438,37 @@ Token funcID(uni_string lexeme) {
  ***********************************************************
  */
 Token funcSL(uni_string lexeme) {
-	Token currentToken = { 0 };
-	uni_int i = 0, len = (uni_int)strlen(lexeme);
-	currentToken.attribute.contentString = readerGetPosWrte(stringLiteralTable);
+    Token currentToken = { 0 };
+    uni_int i = 0, len = (uni_int)strlen(lexeme);
+    currentToken.attribute.contentString = readerGetPosWrte(stringLiteralTable);
 
-	// Add each character to the string literal table except the starting and ending quotes
-	for (i = 1; i < len - 1; i++) {
-		if (lexeme[i] == NWL_CHR)
-			line++;  // Increment line count if newline is encountered
+    // Add each character to the string literal table except the starting and ending quotes
+    for (i = 1; i < len - 1; i++) {
+        if (lexeme[i] == NWL_CHR)
+            line++;  // Increment line count if newline is encountered
 
-		if (!readerAddChar(stringLiteralTable, lexeme[i])) {
-			// If adding to string table fails, set runtime error
-			currentToken.code = RTE_T;
-			scData.scanHistogram[currentToken.code]++;
-			strcpy(currentToken.attribute.errLexeme, "Run Time Error:");
-			errorNumber = RTE_CODE;
-			return currentToken;
-		}
-	}
+        if (!readerAddChar(stringLiteralTable, lexeme[i])) {
+            // If adding to string table fails, set runtime error
+            currentToken.code = RTE_T;
+            scData.scanHistogram[currentToken.code]++;
+            strcpy(currentToken.attribute.errLexeme, "Run Time Error:");
+            errorNumber = RTE_CODE;
+            return currentToken;
+        }
+    }
 
-	// Null-terminate the string in the table
-	if (!readerAddChar(stringLiteralTable, EOS_CHR)) {
-		currentToken.code = RTE_T;
-		scData.scanHistogram[currentToken.code]++;
-		strcpy(currentToken.attribute.errLexeme, "Run Time Error:");
-		errorNumber = RTE_CODE;
-		return currentToken;
-	}
+    // Null-terminate the string in the table
+    if (!readerAddChar(stringLiteralTable, EOS_CHR)) {
+        currentToken.code = RTE_T;
+        scData.scanHistogram[currentToken.code]++;
+        strcpy(currentToken.attribute.errLexeme, "Run Time Error:");
+        errorNumber = RTE_CODE;
+        return currentToken;
+    }
 
-	currentToken.code = STR_T;
-	scData.scanHistogram[currentToken.code]++;
-	return currentToken;
+    currentToken.code = STR_T;
+    scData.scanHistogram[currentToken.code]++;
+    return currentToken;
 }
 
 /*
@@ -464,26 +482,27 @@ Token funcSL(uni_string lexeme) {
  */
 Token funcKEY(uni_string lexeme) {
 	Token currentToken = { 0 };
-	uni_int kwindex = -1, j = 0;
-	uni_int len = (uni_int)strlen(lexeme);
+	uni_int kwindex = -1;
 
-	// Compare the lexeme against each keyword in the keyword table
-	for (j = 0; j < KWT_SIZE; j++) {
-		if (!strcmp(lexeme, keywordTable[j])) {
+	// Check if the lexeme is a keyword
+	for (uni_int j = 0; j < KWT_SIZE; j++) {
+		if (strcmp(lexeme, keywordTable[j]) == 0) {
 			kwindex = j;
-			break; // Exit loop if a match is found
+			break;
 		}
 	}
 
-	// If a keyword is found, set token code to KW_T and assign the keyword index
 	if (kwindex != -1) {
 		currentToken.code = KW_T;
 		scData.scanHistogram[currentToken.code]++;
 		currentToken.attribute.keywordIndex = kwindex;
 	}
 	else {
-		// If no keyword match, handle as an error
-		currentToken = funcErr(lexeme);
+		// Not a keyword, let funcID handle it as a regular identifier
+		currentToken.code = MNID_T;
+		strncpy(currentToken.attribute.idLexeme, lexeme, VID_LEN);
+		currentToken.attribute.idLexeme[VID_LEN] = EOS_CHR;  // Null-terminate
+		scData.scanHistogram[currentToken.code]++;
 	}
 
 	return currentToken;

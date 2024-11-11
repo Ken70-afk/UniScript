@@ -166,6 +166,7 @@ typedef struct scannerData {
 #define MUL_CHR '*'        // Multiplication operator
 #define DIV_CHR '/'        // Division operator
 
+
 /* Error states and illegal state */
 #define ESNR    8          // Error state with no retract
 #define ESWR    9          // Error state with retract
