@@ -65,40 +65,46 @@
 #define RTE_CODE 1  /* Value for run-time error */
 
 /* Define the number of tokens */
-#define NUM_TOKENS 13
+#define NUM_TOKENS 15
 
 /* Define Token codes - Create your token classes */
 enum TOKENS {
-	ERR_T,		/*  0: Error token */
-	MNID_T,		/*  1: Method name identifier token */
-	INL_T,		/*  2: Integer literal token */
-	STR_T,		/*  3: String literal token */
-	LPR_T,		/*  4: Left parenthesis token */
-	RPR_T,		/*  5: Right parenthesis token */
-	LBR_T,		/*  6: Left brace token */
-	RBR_T,		/*  7: Right brace token */
-	KW_T,		/*  8: Keyword token */
-	EOS_T,		/*  9: End of statement (semicolon) */
-	RTE_T,		/* 10: Run-time error token */
-	SEOF_T,		/* 11: Source end-of-file token */
-	CMT_T		/* 12: Comment token */
+	ERR_T,      /*  0: Error token */
+	MNID_T,     /*  1: Method name identifier token */
+	INL_T,      /*  2: Integer literal token */
+	STR_T,      /*  3: String literal token */
+	LPR_T,      /*  4: Left parenthesis token */
+	RPR_T,      /*  5: Right parenthesis token */
+	LBR_T,      /*  6: Left brace token */
+	RBR_T,      /*  7: Right brace token */
+	KW_T,       /*  8: Keyword token */
+	EOS_T,      /*  9: End of statement (semicolon) */
+	RTE_T,      /* 10: Run-time error token */
+	SEOF_T,     /* 11: Source end-of-file token */
+	CMT_T,      /* 12: Comment token */
+	VID_T,      /* 13: Variable identifier token */
+	EQ_T        /* 14: Equal sign (assignment operator) */
 };
 
+
+/* Define the list of token strings */
 /* Define the list of token strings */
 static uni_string tokenStrTable[NUM_TOKENS] = {
-	"ERR_T",
-	"MNID_T",
-	"INL_T",
-	"STR_T",
-	"LPR_T",
-	"RPR_T",
-	"LBR_T",
-	"RBR_T",
-	"KW_T",
-	"EOS_T",
-	"RTE_T",
-	"SEOF_T",
-	"CMT_T"
+	"ERR_T",    /*  0 */
+	"MNID_T",   /*  1 */
+	"INL_T",    /*  2 */
+	"STR_T",    /*  3 */
+	"LPR_T",    /*  4 */
+	"RPR_T",    /*  5 */
+	"LBR_T",    /*  6 */
+	"RBR_T",    /*  7 */
+	"KW_T",     /*  8 */
+	"EOS_T",    /*  9 */
+	"RTE_T",    /* 10 */
+	"SEOF_T",   /* 11 */
+	"CMT_T",    /* 12 */
+	"VID_T",    /* 13 */
+	"EQ_T"      /* 14 */
 };
 
 /* Operators token attributes */
@@ -165,50 +171,76 @@ typedef struct scannerData {
 #define MINUS_CHR '-'      // Minus operator
 #define MUL_CHR '*'        // Multiplication operator
 #define DIV_CHR '/'        // Division operator
-
+#define EQ_CHR '='         // Equal sign (assignment operator)
 
 /* Error states and illegal state */
-#define ESNR    8          // Error state with no retract
-#define ESWR    9          // Error state with retract
-#define FS      10         // Illegal state
+#define ESNR    9          // Error state with no retract
+#define ESWR    10         // Error state with retract
+#define FS      11         // Illegal state
 
 /* State transition table definition */
-#define NUM_STATES        10
-#define CHAR_CLASSES      7
+#define NUM_STATES        12
+#define CHAR_CLASSES      8
 
-/* Transition table - type of states defined in separate table */
+/* Character classes: L(0), D(1), U(2), Q(3), S(4), E(5), EQ(6), O(7) */
 static uni_int transitionTable[NUM_STATES][CHAR_CLASSES] = {
-	/*    [A-z],[0-9],    _,   ",    /,   SEOF, other
-		   L(0), D(1), U(2), Q(3), S(4), E(5),  O(6) */
-		{     1, ESNR, ESNR,    4,    6, ESWR, ESNR}, // S0: NOAS - Initial state
-		{     1,    1,    1,    2,    3,    3,    3}, // S1: NOAS - Handling letters/numbers for identifiers
-		{    FS,   FS,   FS,   FS,   FS,   FS,   FS}, // S2: ASNR (ID) - Identifier accepted
-		{    FS,   FS,   FS,   FS,   FS,   FS,   FS}, // S3: ASWR (KEY) - Keyword accepted
-		{     4,    4,    4,    5,    4, ESWR,    4}, // S4: NOAS - String handling
-		{    FS,   FS,   FS,   FS,   FS,   FS,   FS}, // S5: ASNR (SL) - String literal accepted
-		{     6,    6,    6,    6,    8, ESWR,    6}, // S6: NOAS - Possible start of comment if followed by another /
-		{     7,    7,    7,    7,    7, ESWR,    7}, // S7: NOAS - Inside comment (continues until newline)
-		{    FS,   FS,   FS,   FS,   FS,   FS,   FS}, // S8: ASNR (COM) - Comment accepted when newline reached
-		{    FS,   FS,   FS,   FS,   FS,   FS,   FS}  // S9: ASWR (ER) - Error state
+	/* State 0 */
+	/* L(0)  D(1)   U(2)   Q(3)   S(4)   E(5)   EQ(6)  O(7) */
+	{     1,    8, ESNR,    4,    6, ESWR,    9, ESNR}, // S0: NOAS - Initial state
+
+	/* State 1: Identifier */
+	{     1, ESNR, ESNR,    2, ESNR, ESNR, ESNR, ESNR}, // S1: NOAS - Identifier
+
+	/* State 2: Identifier accepted */
+	{    FS,   FS,   FS,   FS,   FS,   FS,   FS,   FS}, // S2: ASNR (ID) - Identifier accepted
+
+	/* State 3: Error state */
+	{    FS,   FS,   FS,   FS,   FS,   FS,   FS,   FS}, // S3: ASWR (ER) - Error state with retract
+
+	/* State 4: String handling */
+	{     4,    4,    4,    5,    4, ESWR,    4,    4}, // S4: NOAS - String handling
+
+	/* State 5: String literal accepted */
+	{    FS,   FS,   FS,   FS,   FS,   FS,   FS,   FS}, // S5: ASNR (SL) - String literal accepted
+
+	/* State 6: Possible start of comment */
+	{     6,    6,    6,    6,    7, ESWR,    6,    6}, // S6: NOAS - Possible comment start
+
+	/* State 7: Inside comment */
+	{     7,    7,    7,    7,    7, ESWR,    7,    7}, // S7: NOAS - Inside comment
+
+	/* State 8: Integer literals */
+	{    FS,    8, ESNR,   FS,   FS,   FS,   FS,   FS}, // S8: NOAS - Integer literals
+
+	/* State 9: Assignment operator accepted */
+	{    FS,   FS,   FS,   FS,   FS,   FS,   FS,   FS}, // S9: ASNR (EQ) - '=' accepted
+
+	/* State 10: Error state with retract */
+	{    FS,   FS,   FS,   FS,   FS,   FS,   FS,   FS}, // S10: ASWR (ER) - Error state with retract
+
+	/* State 11: Illegal state */
+	{    FS,   FS,   FS,   FS,   FS,   FS,   FS,   FS}  // S11: ASNR (ER) - Illegal state
 };
 
 /* Define accepting states types */
-#define NOFS    0       /* not accepting state */
-#define FSNR    1       /* accepting state with no retract */
-#define FSWR    2       /* accepting state with retract */
+#define NOFS    0       /* Not accepting state */
+#define FSNR    1       /* Accepting state with no retract */
+#define FSWR    2       /* Accepting state with retract */
 
 /* List of acceptable states */
 static uni_int stateType[NUM_STATES] = {
 	NOFS, /* 00 */
 	NOFS, /* 01 */
-	FSNR, /* 02 (ID) - Identifier */
-	FSWR, /* 03 (KEY) - Keyword */
+	FSNR, /* 02 (ID) - Identifier accepted */
+	FSWR, /* 03 - Error state with retract */
 	NOFS, /* 04 - Inside string */
-	FSNR, /* 05 (SL) - String literal */
+	FSNR, /* 05 (SL) - String literal accepted */
 	NOFS, /* 06 - Possible comment start */
-	FSNR, /* 07 (COM) - Comment */
-	FSNR, /* 08 - Error state, no retract */
-	FSWR  /* 09 - Error state, with retract */
+	FSNR, /* 07 (COM) - Comment accepted */
+	FSWR, /* 08 (IL) - Integer literal accepted */
+	FSNR, /* 09 (EQ) - '=' accepted */
+	FSWR, /* 10 - Error state with retract */
+	FSNR  /* 11 - Illegal state */
 };
 
 /*
@@ -240,23 +272,25 @@ Token funcID(uni_string lexeme);
 Token funcCMT(uni_string lexeme);
 Token funcKEY(uni_string lexeme);
 Token funcErr(uni_string lexeme);
-
+Token funcAssignOp(uni_string lexeme);
 /*
  * Accepting function (action) callback table (array) definition
  */
 
  /* Define final state table */
 static PTR_ACCFUN finalStateTable[NUM_STATES] = {
-	NULL,		/* -    [00] */
-	NULL,		/* -    [01] */
-	funcID,		/* MNID	[02] */
-	funcKEY,	/* KEY  [03] */
-	NULL,		/* -    [04] */
-	funcSL,		/* SL   [05] */
-	NULL,		/* -    [06] */
-	funcCMT,	/* COM  [07] */
-	funcErr,	/* ERR1 [06] */
-	funcErr		/* ERR2 [07] */
+	NULL,          /* State 0 */
+	NULL,          /* State 1 */
+	funcID,        /* State 2: Identifier accepted */
+	funcErr,       /* State 3: Error state with retract */
+	NULL,          /* State 4 */
+	funcSL,        /* State 5: String literal accepted */
+	NULL,          /* State 6 */
+	funcCMT,       /* State 7: Comment accepted */
+	funcIL,        /* State 8: Integer literal accepted */
+	funcAssignOp,  /* State 9: '=' operator accepted */
+	funcErr,       /* State 10: Error state with retract */
+	funcErr        /* State 11: Illegal state */
 };
 
 /*
