@@ -140,38 +140,33 @@ Token tokenizer(uni_null) {
 	uni_int lexLength;
 	uni_int i;
 
-	uni_string lexeme = (uni_string)malloc(VID_LEN * sizeof(uni_char));
-	if (!lexeme) {
-		fprintf(stderr, "Memory allocation failed for lexeme.\n");
-		return currentToken;
-	}
-	lexeme[0] = EOS_CHR;
-
 	while (1) {
 		c = readerGetChar(sourceBuffer);
 
-		if (c < 0 || c >= NCHAR) {
-			fprintf(stderr, "Invalid character encountered.\n");
-			return currentToken;
+		// Handle whitespace
+		if (c == SPC_CHR || c == TAB_CHR || c == NWL_CHR) {
+			if (c == NWL_CHR)
+				line++;
+			continue;
 		}
 
-		switch (c) {
-		case SPC_CHR:
-		case TAB_CHR:
-			break;
-		case NWL_CHR:
-			line++;
-			break;
-		case SLASH_CHR: {
+		// Handle single-line comments starting with //
+		if (c == SLASH_CHR) {
 			uni_char nextChar = readerGetChar(sourceBuffer);
 			if (nextChar == SLASH_CHR) {
-				return funcCMT("//");
+				// Consume characters until newline or EOF
+				while ((c = readerGetChar(sourceBuffer)) != NWL_CHR && c != EOF_CHR && c != EOS_CHR);
+				if (c == NWL_CHR)
+					line++;
+				continue;
 			}
 			else {
 				readerRetract(sourceBuffer);
 			}
-			break;
 		}
+
+		// Handle single-character tokens
+		switch (c) {
 		case SCL_CHR:
 			currentToken.code = EOS_T;
 			scData.scanHistogram[currentToken.code]++;
@@ -192,33 +187,70 @@ Token tokenizer(uni_null) {
 			currentToken.code = RBR_T;
 			scData.scanHistogram[currentToken.code]++;
 			return currentToken;
+		case EQ_CHR:
+			currentToken.code = EQ_T;
+			scData.scanHistogram[currentToken.code]++;
+			return currentToken;
+		case DQUT_CHR:
+			// Handle string literals
+			lexStart = readerGetPosRead(sourceBuffer);
+			while ((c = readerGetChar(sourceBuffer)) != DQUT_CHR && c != EOF_CHR && c != EOS_CHR) {
+				if (c == NWL_CHR)
+					line++;
+			}
+			if (c == DQUT_CHR) {
+				lexEnd = readerGetPosRead(sourceBuffer);
+				lexLength = lexEnd - lexStart;
+				lexemeBuffer = readerCreate(lexLength + 2, 0, MODE_FIXED);
+
+				if (!lexemeBuffer) {
+					fprintf(stderr, "Scanner error: Cannot create lexeme buffer.\n");
+					exit(1);
+				}
+
+				readerSetMark(sourceBuffer, lexStart - 1);
+				readerRestore(sourceBuffer);
+				for (i = 0; i < lexLength + 1; i++) {
+					readerAddChar(lexemeBuffer, readerGetChar(sourceBuffer));
+				}
+				readerAddChar(lexemeBuffer, READER_TERMINATOR);
+				uni_string lexeme = readerGetContent(lexemeBuffer, 0);
+
+				currentToken = funcSL(lexeme);
+				scData.scanHistogram[currentToken.code]++;
+				readerRestore(lexemeBuffer);
+				return currentToken;
+			}
+			else {
+				// Handle unterminated string error
+				currentToken = funcErr("Unterminated string literal");
+				return currentToken;
+			}
+			break;
+		case EOF_CHR:
 		case EOS_CHR:
 			currentToken.code = SEOF_T;
 			scData.scanHistogram[currentToken.code]++;
-			currentToken.attribute.seofType = SEOF_0;
+			currentToken.attribute.seofType = (c == EOF_CHR) ? SEOF_255 : SEOF_0;
 			return currentToken;
-		case EOF_CHR:
-			currentToken.code = SEOF_T;
-			scData.scanHistogram[currentToken.code]++;
-			currentToken.attribute.seofType = SEOF_255;
-			return currentToken;
-
 		default:
-			state = nextState(state, c);
+			break;
+		}
+
+		// Handle identifiers (variables and functions)
+		if (isalpha(c)) {
+			// Start of an identifier
 			lexStart = readerGetPosRead(sourceBuffer) - 1;
 			readerSetMark(sourceBuffer, lexStart);
 
-			while (stateType[state] == NOFS) {
-				c = readerGetChar(sourceBuffer);
-				state = nextState(state, c);
+			while (isalpha(c = readerGetChar(sourceBuffer))) {
+				// Continue reading letters
 			}
 
-			if (stateType[state] == FSWR)
-				readerRetract(sourceBuffer);
-
+			readerRetract(sourceBuffer);
 			lexEnd = readerGetPosRead(sourceBuffer);
 			lexLength = lexEnd - lexStart;
-			lexemeBuffer = readerCreate((uni_int)lexLength + 2, 0, MODE_FIXED);
+			lexemeBuffer = readerCreate(lexLength + 1, 0, MODE_FIXED);
 
 			if (!lexemeBuffer) {
 				fprintf(stderr, "Scanner error: Cannot create lexeme buffer.\n");
@@ -226,29 +258,83 @@ Token tokenizer(uni_null) {
 			}
 
 			readerRestore(sourceBuffer);
-			for (i = 0; i < lexLength; i++)
+			for (i = 0; i < lexLength; i++) {
 				readerAddChar(lexemeBuffer, readerGetChar(sourceBuffer));
-			readerAddChar(lexemeBuffer, READER_TERMINATOR);
-			lexeme = readerGetContent(lexemeBuffer, 0);
-
-			if (!lexeme) {
-				fprintf(stderr, "Error: Null lexeme encountered.\n");
-				return currentToken;
 			}
+			readerAddChar(lexemeBuffer, READER_TERMINATOR);
+			uni_string lexeme = readerGetContent(lexemeBuffer, 0);
 
-			uni_char lookahead = readerGetChar(sourceBuffer);
-			if (lookahead == LPR_CHR) {
-				expectMethod = UNI_TRUE;
+			// Now, look ahead to see if the next character is '('
+			c = readerGetChar(sourceBuffer);
+			if (c == LPR_CHR) {
+				// Function identifier
+				currentToken.code = MNID_T;
+				readerRetract(sourceBuffer); // Leave '(' to be processed next time
 			}
 			else {
-				expectMethod = UNI_FALSE;
-				readerRetract(sourceBuffer);  // Retract if not a method
+				// Variable identifier
+				currentToken.code = VID_T;
+				readerRetract(sourceBuffer); // Put back the character
 			}
 
-			currentToken = (*finalStateTable[state])(lexeme);
+			// Check if the lexeme is a keyword
+			for (i = 0; i < KWT_SIZE; i++) {
+				if (strcmp(lexeme, keywordTable[i]) == 0) {
+					currentToken.code = KW_T;
+					currentToken.attribute.keywordIndex = i;
+					break;
+				}
+			}
+
+			if (currentToken.code == MNID_T || currentToken.code == VID_T) {
+				// Copy the lexeme into the token attribute
+				strncpy(currentToken.attribute.idLexeme, lexeme, VID_LEN);
+				currentToken.attribute.idLexeme[VID_LEN] = EOS_CHR;  // Null-terminate
+			}
+
+			scData.scanHistogram[currentToken.code]++;
 			readerRestore(lexemeBuffer);
 			return currentToken;
 		}
+
+		// **Add this block to handle integer literals**
+		// Handle integer literals
+		if (isdigit(c)) {
+			// Start of an integer literal
+			lexStart = readerGetPosRead(sourceBuffer) - 1;
+			readerSetMark(sourceBuffer, lexStart);
+
+			while (isdigit(c = readerGetChar(sourceBuffer))) {
+				// Continue reading digits
+			}
+
+			readerRetract(sourceBuffer);
+			lexEnd = readerGetPosRead(sourceBuffer);
+			lexLength = lexEnd - lexStart;
+			lexemeBuffer = readerCreate(lexLength + 1, 0, MODE_FIXED);
+
+			if (!lexemeBuffer) {
+				fprintf(stderr, "Scanner error: Cannot create lexeme buffer.\n");
+				exit(1);
+			}
+
+			readerRestore(sourceBuffer);
+			for (i = 0; i < lexLength; i++) {
+				readerAddChar(lexemeBuffer, readerGetChar(sourceBuffer));
+			}
+			readerAddChar(lexemeBuffer, READER_TERMINATOR);
+			uni_string lexeme = readerGetContent(lexemeBuffer, 0);
+
+			currentToken = funcIL(lexeme);
+			scData.scanHistogram[currentToken.code]++;
+			readerRestore(lexemeBuffer);
+			return currentToken;
+		}
+
+		// Handle any other unrecognized character
+		uni_char errLexeme[2] = { c, '\0' };
+		currentToken = funcErr(errLexeme);
+		return currentToken;
 	}
 }
 
@@ -310,30 +396,27 @@ uni_int nextState(uni_int state, uni_char c) {
 	   L(0), D(1), U(2), Q(3), S(4), E(5),  O(6) */
 
 uni_int nextClass(uni_char c) {
-	uni_int val = -1;
-	switch (c) {
-	case UND_CHR:
-		val = 2; // Underscore
-		break;
-	case DQUT_CHR:
-		val = 3; // Double quote for string literals
-		break;
-	case SLASH_CHR:
-		val = 4; // Slash for starting comments
-		break;
-	case EOS_CHR:
-	case EOF_CHR:
-		val = 5; // End of source or file
-		break;
-	default:
-		if (isalpha(c))
-			val = 0; // Letters
-		else if (isdigit(c))
-			val = 1; // Digits
-		else
-			val = 6; // Other
+	if (isalpha(c))
+		return 0; // Letter
+	else if (isdigit(c))
+		return 1; // Digit
+	else {
+		switch (c) {
+		case UND_CHR:
+			return 2; // Underscore '_'
+		case DQUT_CHR:
+			return 3; // Double quote '"'
+		case SLASH_CHR:
+			return 4; // Slash '/'
+		case EOS_CHR:
+		case EOF_CHR:
+			return 5; // End of file
+		case EQ_CHR:
+			return 6; // Equal sign '='
+		default:
+			return 7; // Other characters
+		}
 	}
-	return val;
 }
 
 /*
@@ -369,34 +452,19 @@ Token funcCMT(uni_string lexeme) {
 
 Token funcIL(uni_string lexeme) {
 	Token currentToken = { 0 };
-	uni_long tlong;
-
-	// Check if lexeme exceeds allowed integer literal length
-	if (lexeme[0] != EOS_CHR && strlen(lexeme) > NUM_LEN) {
-		// Exceeds length: handle as an error token
+	uni_long tlong = atol(lexeme);
+	if (tlong >= INT_MIN && tlong <= INT_MAX) {
+		currentToken.code = INL_T;
+		currentToken.attribute.intValue = (uni_int)tlong;
+		scData.scanHistogram[currentToken.code]++;
+	}
+	else {
+		// Handle integer out of range
 		strncpy(currentToken.attribute.errLexeme, lexeme, ERR_LEN - 3);
 		currentToken.attribute.errLexeme[ERR_LEN - 3] = EOS_CHR;
 		strcat(currentToken.attribute.errLexeme, "...");
 		currentToken.code = ERR_T;
 		scData.scanHistogram[ERR_T]++;
-	}
-	else {
-		// Convert lexeme to long integer
-		tlong = atol(lexeme);
-		// Validate integer range
-		if (tlong >= 0 && tlong <= SHRT_MAX) {
-			currentToken.code = INL_T;
-			scData.scanHistogram[currentToken.code]++;
-			currentToken.attribute.intValue = (uni_int)tlong;
-		}
-		else {
-			// Out of range: handle as an error token
-			strncpy(currentToken.attribute.errLexeme, lexeme, ERR_LEN - 3);
-			currentToken.attribute.errLexeme[ERR_LEN - 3] = EOS_CHR;
-			strcat(currentToken.attribute.errLexeme, "...");
-			currentToken.code = ERR_T;
-			scData.scanHistogram[ERR_T]++;
-		}
 	}
 	return currentToken;
 }
@@ -412,16 +480,8 @@ Token funcIL(uni_string lexeme) {
  ***********************************************************
  */
 Token funcID(uni_string lexeme) {
-	Token currentToken = funcKEY(lexeme);  // Check if lexeme is a keyword
-
-	if (currentToken.code == KW_T) return currentToken;  // Return if it's a keyword
-
-	// Not a keyword, so treat it as an identifier
-	currentToken.code = MNID_T;
-	strncpy(currentToken.attribute.idLexeme, lexeme, VID_LEN);
-	currentToken.attribute.idLexeme[VID_LEN] = EOS_CHR;  // Null-terminate
-
-	scData.scanHistogram[currentToken.code]++;
+	// Since identifiers are fully handled in tokenizer, this function might be redundant
+	Token currentToken = { 0 };
 	return currentToken;
 }
 
@@ -550,32 +610,21 @@ Token funcErr(uni_string lexeme) {
  ***********************************************************
  */
 
-uni_null printToken(Token t) {
-	extern uni_string keywordTable[]; /* Link to keyword table */
+void printToken(Token t) {
 	switch (t.code) {
-	case RTE_T:
-		printf("RTE_T\t\t%s", t.attribute.errLexeme);
-		/* Handle run-time error if present */
-		if (errorNumber) {
-			printf(" [Error Code: %d]", errorNumber);
-			exit(errorNumber);
-		}
-		printf("\n");
-		break;
 	case ERR_T:
 		printf("ERR_T\t\t%s\n", t.attribute.errLexeme);
-		break;
-	case SEOF_T:
-		printf("SEOF_T\t\t%d\n", t.attribute.seofType);
 		break;
 	case MNID_T:
 		printf("MNID_T\t\t%s\n", t.attribute.idLexeme);
 		break;
+	case INL_T:
+		printf("INL_T\t\t%d\n", t.attribute.intValue);
+		break;
 	case STR_T:
-		printf("STR_T\t\t%d\t", (uni_int)t.attribute.contentString);
-		/* Ensure content exists before printing */
+		printf("STR_T\t\t%d\t", t.attribute.contentString);
 		if (stringLiteralTable != NULL) {
-			printf("%s\n", readerGetContent(stringLiteralTable, (uni_int)t.attribute.contentString));
+			printf("%s\n", readerGetContent(stringLiteralTable, t.attribute.contentString));
 		}
 		else {
 			printf("(null)\n");
@@ -594,7 +643,6 @@ uni_null printToken(Token t) {
 		printf("RBR_T\n");
 		break;
 	case KW_T:
-		/* Ensure keyword index is within bounds */
 		if (t.attribute.keywordIndex >= 0 && t.attribute.keywordIndex < KWT_SIZE) {
 			printf("KW_T\t\t%s\n", keywordTable[t.attribute.keywordIndex]);
 		}
@@ -602,11 +650,28 @@ uni_null printToken(Token t) {
 			printf("KW_T\t\t(Invalid Keyword Index)\n");
 		}
 		break;
+	case EOS_T:
+		printf("EOS_T\n");
+		break;
+	case RTE_T:
+		printf("RTE_T\t\t%s", t.attribute.errLexeme);
+		if (errorNumber) {
+			printf(" [Error Code: %d]", errorNumber);
+			exit(errorNumber);
+		}
+		printf("\n");
+		break;
+	case SEOF_T:
+		printf("SEOF_T\t\t%d\n", t.attribute.seofType);
+		break;
 	case CMT_T:
 		printf("CMT_T\n");
 		break;
-	case EOS_T:
-		printf("EOS_T\n");
+	case VID_T:
+		printf("VID_T\t\t%s\n", t.attribute.idLexeme);
+		break;
+	case EQ_T:
+		printf("EQ_T\t\t=\n");
 		break;
 	default:
 		printf("Scanner error: invalid token code: %d\n", t.code);
@@ -637,3 +702,9 @@ uni_null printScannerData(ScannerData scData) {
 /*
 TO_DO: (If necessary): HERE YOU WRITE YOUR ADDITIONAL FUNCTIONS (IF ANY).
 */
+Token funcAssignOp(uni_string lexeme) {
+	Token currentToken = { 0 };
+	currentToken.code = EQ_T;
+	scData.scanHistogram[currentToken.code]++;
+	return currentToken;
+}
