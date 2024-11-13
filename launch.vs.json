@@ -9,8 +9,8 @@
       "name": "UniScript.exe",
         "args": [
             "2",
-            "HELLO.uni",
-            "t"
+            "UNI_HELLO.uni",
+            "m"
         ]
     }
   ]

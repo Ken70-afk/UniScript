@@ -2,31 +2,40 @@
 ************************************************************
 * COMPILERS COURSE - Algonquin College
 * Code version: Fall, 2024
-* Author: TO_DO
+* Author: Diyon Johnson / Abhinav Ranjith
 * Professors: Paulo Sousa
 ************************************************************
 #
-# ECHO "=---------------------------------------="
-# ECHO "|  COMPILERS - ALGONQUIN COLLEGE (F24)  |"
-# ECHO "=---------------------------------------="
-# ECHO "    @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@    ”
-# ECHO "    @@                             @@    ”
-# ECHO "    @@           %&@@@@@@@@@@@     @@    ”
-# ECHO "    @@       @%% (@@@@@@@@@  @     @@    ”
-# ECHO "    @@      @& @   @ @       @     @@    ”
-# ECHO "    @@     @ @ %  / /   @@@@@@     @@    ”
-# ECHO "    @@      & @ @  @@              @@    ”
-# ECHO "    @@       @/ @*@ @ @   @        @@    ”
-# ECHO "    @@           @@@@  @@ @ @      @@    ”
-# ECHO "    @@            /@@    @@@ @     @@    ”
-# ECHO "    @@     @      / /     @@ @     @@    ”
-# ECHO "    @@     @ @@   /@/   @@@ @      @@    ”
-# ECHO "    @@     @@@@@@@@@@@@@@@         @@    ”
-# ECHO "    @@                             @@    ”
-# ECHO "    @@         S O F I A           @@    ”
-# ECHO "    @@                             @@    ”
-# ECHO "    @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@    ”
-# ECHO "                                         "
+# ECHO "=------------------------------------------------="
+# ECHO "|        COMPILERS - ALGONQUIN COLLEGE (F24)     |"
+# ECHO "=------------------------------------------------="
+# ECHO "                                        	      "
+# ECHO " +++++++=++*+++++++++++++++=*++++++++++++++++++++ "
+# ECHO " ++++++++++++++++++++++++++++++++++++++=+++++++++ "
+# ECHO " ++++++++++++++++++++++++***+*+*+=**+++++++++++++ "
+# ECHO " +++++*+++++.        -++++=+=.        -+++*+++++= "
+# ECHO " ++++++++++  @@@@@@@  ++++++  @@@@@@@# -++++**+++ "
+# ECHO " +++++++++* @@     @@ ++++++ @@     @@ .=**====+* "
+# ECHO " +++++++++* -@ = @ @@ ++++++ =@  @@  @  **=++**+= "
+# ECHO " *++++++++* -@ @@@ @@ ++++++ :@ @@@ %@ .+==++++++ "
+# ECHO " +++++++++* -@     @@ ++=+== :@     @@  +++++++*+ "
+# ECHO " *+++++++++ -@ @@% @@ +*+**+ :@ @@  %@  +++++++*+ "
+# ECHO " +++++++*=+ -@     @@ ===+=+ :@  .@@#@  +++***+++ "
+# ECHO " ++++++++++ :@ ##% @@ *++++* .@ @@  @@  +++++++++ "
+# ECHO " +===++*+++ -@     @@  .++-  @@     @@ .++++**+*+ "
+# ECHO " +*++*++=++ =@  @@  @@@     @@  @@@ @@ :+++++++=+ "
+# ECHO " ++*+=+**++  @@ @@    @@@@@@    @@  @@ +++++****+ "
+# ECHO " ++++*===+==  @@   %@@   @   @@    @@  .*++++==++ "
+# ECHO " ++++*+***++-  @@@      @@       @@  @@  ++++*+++ "
+# ECHO " ++++++*=+++==   @@@@   @@   @@@@*  @@ @ =+++++++ "
+# ECHO " *===*+*+=+++==:    %@@@@@@@@@:     @@@  ++++++++ "
+# ECHO " **++++==**+++++=:              -+*-    =++++++*+ "
+# ECHO " +++++++++++*+=++++++==---==+++*++++++++++++++*+= "
+# ECHO " **=++++*++*+*+++*+++++++++++++++++++++++++++=+*+ "
+# ECHO " *+++*+++++++*+  U N I S C R I P T ++++++++++++++ "
+# ECHO " *+*+++++==++++*++=++++++++++++++++++++++++++=+++ "
+# ECHO " *+*+++++**++*+****++++++++++++++++++++++++++*+++ "
+# ECHO "                                                  "
 # ECHO "[READER SCRIPT .........................]"
 # ECHO "                                         "
 */
@@ -191,6 +200,26 @@ Token tokenizer(uni_null) {
 			currentToken.code = EQ_T;
 			scData.scanHistogram[currentToken.code]++;
 			return currentToken;
+		case PLUS_CHR:
+			currentToken.code = ADD_T;
+			currentToken.attribute.arithmeticOperator = OP_ADD;
+			scData.scanHistogram[currentToken.code]++;
+			return currentToken;
+		case MINUS_CHR:
+			currentToken.code = SUB_T;
+			currentToken.attribute.arithmeticOperator = OP_SUB;
+			scData.scanHistogram[currentToken.code]++;
+			return currentToken;
+		case MUL_CHR:
+			currentToken.code = MUL_T;
+			currentToken.attribute.arithmeticOperator = OP_MUL;
+			scData.scanHistogram[currentToken.code]++;
+			return currentToken;
+		case DIV_CHR:
+			currentToken.code = DIV_T;
+			currentToken.attribute.arithmeticOperator = OP_DIV;
+			scData.scanHistogram[currentToken.code]++;
+			return currentToken;
 		case DQUT_CHR:
 			// Handle string literals
 			lexStart = readerGetPosRead(sourceBuffer);
@@ -297,15 +326,32 @@ Token tokenizer(uni_null) {
 			return currentToken;
 		}
 
-		// **Add this block to handle integer literals**
-		// Handle integer literals
+		// Handle numbers (integers and floating-point literals)
 		if (isdigit(c)) {
-			// Start of an integer literal
+			// Start of a number
 			lexStart = readerGetPosRead(sourceBuffer) - 1;
 			readerSetMark(sourceBuffer, lexStart);
 
-			while (isdigit(c = readerGetChar(sourceBuffer))) {
-				// Continue reading digits
+			uni_boln isFloat = UNI_FALSE;
+
+			while (1) {
+				c = readerGetChar(sourceBuffer);
+
+				if (isdigit(c)) {
+					// Continue reading digits
+					continue;
+				}
+				else if (c == DOT_CHR) {
+					if (isFloat) {
+						// Error: multiple dots in number
+						break;
+					}
+					isFloat = UNI_TRUE;
+				}
+				else {
+					// Not a digit or dot, end of number
+					break;
+				}
 			}
 
 			readerRetract(sourceBuffer);
@@ -325,7 +371,12 @@ Token tokenizer(uni_null) {
 			readerAddChar(lexemeBuffer, READER_TERMINATOR);
 			uni_string lexeme = readerGetContent(lexemeBuffer, 0);
 
-			currentToken = funcIL(lexeme);
+			if (isFloat) {
+				currentToken = funcFL(lexeme);
+			}
+			else {
+				currentToken = funcIL(lexeme);
+			}
 			scData.scanHistogram[currentToken.code]++;
 			readerRestore(lexemeBuffer);
 			return currentToken;
@@ -402,17 +453,17 @@ uni_int nextClass(uni_char c) {
 		return 1; // Digit
 	else {
 		switch (c) {
-		case UND_CHR:
-			return 2; // Underscore '_'
 		case DQUT_CHR:
-			return 3; // Double quote '"'
+			return 2; // Double quote '"'
 		case SLASH_CHR:
-			return 4; // Slash '/'
+			return 3; // Slash '/'
 		case EOS_CHR:
 		case EOF_CHR:
-			return 5; // End of file
+			return 4; // End of file
 		case EQ_CHR:
-			return 6; // Equal sign '='
+			return 5; // Equal sign '='
+		case DOT_CHR:
+			return 6; // Dot '.'
 		default:
 			return 7; // Other characters
 		}
@@ -673,6 +724,21 @@ void printToken(Token t) {
 	case EQ_T:
 		printf("EQ_T\t\t=\n");
 		break;
+	case FPL_T:
+		printf("FPL_T\t\t%f\n", t.attribute.floatValue);
+		break;
+	case ADD_T:
+		printf("ADD_T\t\t+\n");
+		break;
+	case SUB_T:
+		printf("SUB_T\t\t-\n");
+		break;
+	case MUL_T:
+		printf("MUL_T\t\t*\n");
+		break;
+	case DIV_T:
+		printf("DIV_T\t\t/\n");
+		break;
 	default:
 		printf("Scanner error: invalid token code: %d\n", t.code);
 	}
@@ -708,3 +774,24 @@ Token funcAssignOp(uni_string lexeme) {
 	scData.scanHistogram[currentToken.code]++;
 	return currentToken;
 }
+
+
+Token funcFL(uni_string lexeme) {
+	Token currentToken = { 0 };
+	uni_float tfloat = atof(lexeme);
+	if (tfloat >= -DBL_MAX && tfloat <= DBL_MAX) {
+		currentToken.code = FPL_T;
+		currentToken.attribute.floatValue = tfloat;
+		scData.scanHistogram[currentToken.code]++;
+	}
+	else {
+		// Handle floating-point out of range
+		strncpy(currentToken.attribute.errLexeme, lexeme, ERR_LEN - 3);
+		currentToken.attribute.errLexeme[ERR_LEN - 3] = EOS_CHR;
+		strcat(currentToken.attribute.errLexeme, "...");
+		currentToken.code = ERR_T;
+		scData.scanHistogram[ERR_T]++;
+	}
+	return currentToken;
+}
+
