@@ -2,35 +2,43 @@
 ************************************************************
 * COMPILERS COURSE - Algonquin College
 * Code version: Fall, 2024
-* Author: TO_DO
+* Author: Diyon Johnson / Abhinav Ranjith
 * Professors: Paulo Sousa
 ************************************************************
 #
-# ECHO "=---------------------------------------="
-# ECHO "|  COMPILERS - ALGONQUIN COLLEGE (F24)  |"
-# ECHO "=---------------------------------------="
-# ECHO "    @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@    ”
-# ECHO "    @@                             @@    ”
-# ECHO "    @@           %&@@@@@@@@@@@     @@    ”
-# ECHO "    @@       @%% (@@@@@@@@@  @     @@    ”
-# ECHO "    @@      @& @   @ @       @     @@    ”
-# ECHO "    @@     @ @ %  / /   @@@@@@     @@    ”
-# ECHO "    @@      & @ @  @@              @@    ”
-# ECHO "    @@       @/ @*@ @ @   @        @@    ”
-# ECHO "    @@           @@@@  @@ @ @      @@    ”
-# ECHO "    @@            /@@    @@@ @     @@    ”
-# ECHO "    @@     @      / /     @@ @     @@    ”
-# ECHO "    @@     @ @@   /@/   @@@ @      @@    ”
-# ECHO "    @@     @@@@@@@@@@@@@@@         @@    ”
-# ECHO "    @@                             @@    ”
-# ECHO "    @@         S O F I A           @@    ”
-# ECHO "    @@                             @@    ”
-# ECHO "    @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@    ”
-# ECHO "                                         "
+# ECHO "=------------------------------------------------="
+# ECHO "|        COMPILERS - ALGONQUIN COLLEGE (F24)     |"
+# ECHO "=------------------------------------------------="
+# ECHO "                                        	      "
+# ECHO " +++++++=++*+++++++++++++++=*++++++++++++++++++++ "
+# ECHO " ++++++++++++++++++++++++++++++++++++++=+++++++++ "
+# ECHO " ++++++++++++++++++++++++***+*+*+=**+++++++++++++ "
+# ECHO " +++++*+++++.        -++++=+=.        -+++*+++++= "
+# ECHO " ++++++++++  @@@@@@@  ++++++  @@@@@@@# -++++**+++ "
+# ECHO " +++++++++* @@     @@ ++++++ @@     @@ .=**====+* "
+# ECHO " +++++++++* -@ = @ @@ ++++++ =@  @@  @  **=++**+= "
+# ECHO " *++++++++* -@ @@@ @@ ++++++ :@ @@@ %@ .+==++++++ "
+# ECHO " +++++++++* -@     @@ ++=+== :@     @@  +++++++*+ "
+# ECHO " *+++++++++ -@ @@% @@ +*+**+ :@ @@  %@  +++++++*+ "
+# ECHO " +++++++*=+ -@     @@ ===+=+ :@  .@@#@  +++***+++ "
+# ECHO " ++++++++++ :@ ##% @@ *++++* .@ @@  @@  +++++++++ "
+# ECHO " +===++*+++ -@     @@  .++-  @@     @@ .++++**+*+ "
+# ECHO " +*++*++=++ =@  @@  @@@     @@  @@@ @@ :+++++++=+ "
+# ECHO " ++*+=+**++  @@ @@    @@@@@@    @@  @@ +++++****+ "
+# ECHO " ++++*===+==  @@   %@@   @   @@    @@  .*++++==++ "
+# ECHO " ++++*+***++-  @@@      @@       @@  @@  ++++*+++ "
+# ECHO " ++++++*=+++==   @@@@   @@   @@@@*  @@ @ =+++++++ "
+# ECHO " *===*+*+=+++==:    %@@@@@@@@@:     @@@  ++++++++ "
+# ECHO " **++++==**+++++=:              -+*-    =++++++*+ "
+# ECHO " +++++++++++*+=++++++==---==+++*++++++++++++++*+= "
+# ECHO " **=++++*++*+*+++*+++++++++++++++++++++++++++=+*+ "
+# ECHO " *+++*+++++++*+  U N I S C R I P T ++++++++++++++ "
+# ECHO " *+*+++++==++++*++=++++++++++++++++++++++++++=+++ "
+# ECHO " *+*+++++**++*+****++++++++++++++++++++++++++*+++ "
+# ECHO "                                                  "
 # ECHO "[READER SCRIPT .........................]"
 # ECHO "                                         "
 */
-
 /*
 ************************************************************
 * File name: Scanner.h
@@ -41,7 +49,6 @@
 * Purpose: This file is the main header for Scanner (.h)
 * Function list: (...).
 *************************************************************/
-
 #ifndef COMPILERS_H_
 #include "Compilers.h"
 #endif
@@ -65,7 +72,7 @@
 #define RTE_CODE 1  /* Value for run-time error */
 
 /* Define the number of tokens */
-#define NUM_TOKENS 15
+#define NUM_TOKENS 20
 
 /* Define Token codes - Create your token classes */
 enum TOKENS {
@@ -83,11 +90,15 @@ enum TOKENS {
 	SEOF_T,     /* 11: Source end-of-file token */
 	CMT_T,      /* 12: Comment token */
 	VID_T,      /* 13: Variable identifier token */
-	EQ_T        /* 14: Equal sign (assignment operator) */
+	EQ_T,       /* 14: Equal sign (assignment operator) */
+	FPL_T,      /* 15: Floating-point literal token */
+	ADD_T,      /* 16: Addition operator */
+	SUB_T,      /* 17: Subtraction operator */
+	MUL_T,      /* 18: Multiplication operator */
+	DIV_T       /* 19: Division operator */
 };
 
 
-/* Define the list of token strings */
 /* Define the list of token strings */
 static uni_string tokenStrTable[NUM_TOKENS] = {
 	"ERR_T",    /*  0 */
@@ -104,8 +115,14 @@ static uni_string tokenStrTable[NUM_TOKENS] = {
 	"SEOF_T",   /* 11 */
 	"CMT_T",    /* 12 */
 	"VID_T",    /* 13 */
-	"EQ_T"      /* 14 */
+	"EQ_T",     /* 14 */
+	"FPL_T",    /* 15 */
+	"ADD_T",    /* 16 */
+	"SUB_T",    /* 17 */
+	"MUL_T",    /* 18 */
+	"DIV_T"     /* 19 */
 };
+
 
 /* Operators token attributes */
 typedef enum ArithmeticOperators { OP_ADD, OP_SUB, OP_MUL, OP_DIV } AriOperator;
@@ -155,7 +172,6 @@ typedef struct scannerData {
 /* Define lexeme FIXED classes for UniScript */
 #define EOS_CHR '\0'       // End of string
 #define EOF_CHR 0xFF       // End of file marker
-#define UND_CHR '_'        // Underscore character
 #define SLASH_CHR '/'      // Slash character for comments
 #define DQUT_CHR '"'       // Double quote for string literals
 #define HST_CHR '#'        // Hash for inline comments
@@ -172,6 +188,8 @@ typedef struct scannerData {
 #define MUL_CHR '*'        // Multiplication operator
 #define DIV_CHR '/'        // Division operator
 #define EQ_CHR '='         // Equal sign (assignment operator)
+#define DOT_CHR '.'		   // Dot character
+
 
 /* Error states and illegal state */
 #define ESNR    9          // Error state with no retract
@@ -179,47 +197,50 @@ typedef struct scannerData {
 #define FS      11         // Illegal state
 
 /* State transition table definition */
-#define NUM_STATES        12
+#define NUM_STATES        14
 #define CHAR_CLASSES      8
 
-/* Character classes: L(0), D(1), U(2), Q(3), S(4), E(5), EQ(6), O(7) */
+/* Transition table */
 static uni_int transitionTable[NUM_STATES][CHAR_CLASSES] = {
-	/* State 0 */
-	/* L(0)  D(1)   U(2)   Q(3)   S(4)   E(5)   EQ(6)  O(7) */
-	{     1,    8, ESNR,    4,    6, ESWR,    9, ESNR}, // S0: NOAS - Initial state
+	/* State 0: Initial state */
+	/* L(0)  D(1)   Q(2)   S(3)   E(4)   EQ(5)  DOT(6) O(7) */
+	{     1,    8,    4,    6, ESWR,    9, ESNR, ESNR}, // S0: NOAS
 
 	/* State 1: Identifier */
-	{     1, ESNR, ESNR,    2, ESNR, ESNR, ESNR, ESNR}, // S1: NOAS - Identifier
+	{     1, ESNR,    2, ESNR, ESNR, ESNR, ESNR, ESNR}, // S1: NOAS
 
 	/* State 2: Identifier accepted */
-	{    FS,   FS,   FS,   FS,   FS,   FS,   FS,   FS}, // S2: ASNR (ID) - Identifier accepted
+	{    FS,   FS,   FS,   FS,   FS,   FS,   FS,   FS}, // S2: ASNR (ID)
 
 	/* State 3: Error state */
-	{    FS,   FS,   FS,   FS,   FS,   FS,   FS,   FS}, // S3: ASWR (ER) - Error state with retract
+	{    FS,   FS,   FS,   FS,   FS,   FS,   FS,   FS}, // S3: ASWR (ER)
 
 	/* State 4: String handling */
-	{     4,    4,    4,    5,    4, ESWR,    4,    4}, // S4: NOAS - String handling
+	{     4,    4,    5,    4, ESWR,    4,    4,    4}, // S4: NOAS
 
 	/* State 5: String literal accepted */
-	{    FS,   FS,   FS,   FS,   FS,   FS,   FS,   FS}, // S5: ASNR (SL) - String literal accepted
+	{    FS,   FS,   FS,   FS,   FS,   FS,   FS,   FS}, // S5: ASNR (SL)
 
 	/* State 6: Possible start of comment */
-	{     6,    6,    6,    6,    7, ESWR,    6,    6}, // S6: NOAS - Possible comment start
+	{     6,    6,    6,    7, ESWR,    6,    6,    6}, // S6: NOAS
 
 	/* State 7: Inside comment */
-	{     7,    7,    7,    7,    7, ESWR,    7,    7}, // S7: NOAS - Inside comment
+	{     7,    7,    7,    7, ESWR,    7,    7,    7}, // S7: NOAS
 
-	/* State 8: Integer literals */
-	{    FS,    8, ESNR,   FS,   FS,   FS,   FS,   FS}, // S8: NOAS - Integer literals
+	/* State 8: Start of number (integer or float) */
+	{  ESWR,    8, ESNR, ESNR, ESNR, ESNR,    9, ESNR}, // S8: NOAS
 
-	/* State 9: Assignment operator accepted */
-	{    FS,   FS,   FS,   FS,   FS,   FS,   FS,   FS}, // S9: ASNR (EQ) - '=' accepted
+	/* State 9: After dot '.', expecting digits */
+	{  ESNR,   10, ESNR, ESNR, ESNR, ESNR, ESNR, ESNR}, // S9: NOAS
 
-	/* State 10: Error state with retract */
-	{    FS,   FS,   FS,   FS,   FS,   FS,   FS,   FS}, // S10: ASWR (ER) - Error state with retract
+	/* State 10: Fractional part of floating-point number */
+	{  ESWR,   10, ESNR, ESNR, ESNR, ESNR, ESNR, ESNR}, // S10: NOAS
 
-	/* State 11: Illegal state */
-	{    FS,   FS,   FS,   FS,   FS,   FS,   FS,   FS}  // S11: ASNR (ER) - Illegal state
+	/* State 11: Integer literal accepted */
+	{    FS,   FS,   FS,   FS,   FS,   FS,   FS,   FS}, // S11: ASWR (IL)
+
+	/* State 12: Floating-point literal accepted */
+	{    FS,   FS,   FS,   FS,   FS,   FS,   FS,   FS}  // S12: ASWR (FL)
 };
 
 /* Define accepting states types */
@@ -229,18 +250,19 @@ static uni_int transitionTable[NUM_STATES][CHAR_CLASSES] = {
 
 /* List of acceptable states */
 static uni_int stateType[NUM_STATES] = {
-	NOFS, /* 00 */
-	NOFS, /* 01 */
-	FSNR, /* 02 (ID) - Identifier accepted */
-	FSWR, /* 03 - Error state with retract */
-	NOFS, /* 04 - Inside string */
-	FSNR, /* 05 (SL) - String literal accepted */
-	NOFS, /* 06 - Possible comment start */
-	FSNR, /* 07 (COM) - Comment accepted */
-	FSWR, /* 08 (IL) - Integer literal accepted */
-	FSNR, /* 09 (EQ) - '=' accepted */
-	FSWR, /* 10 - Error state with retract */
-	FSNR  /* 11 - Illegal state */
+	NOFS, /*  0 */
+	NOFS, /*  1 */
+	FSNR, /*  2 (ID) */
+	FSWR, /*  3 (ER) */
+	NOFS, /*  4 */
+	FSNR, /*  5 (SL) */
+	NOFS, /*  6 */
+	FSNR, /*  7 (COM) */
+	NOFS, /*  8 */
+	NOFS, /*  9 */
+	FSWR, /* 10 (FL) */
+	FSWR, /* 11 (IL) */
+	FSWR  /* 12 (FL) */
 };
 
 /*
@@ -273,24 +295,28 @@ Token funcCMT(uni_string lexeme);
 Token funcKEY(uni_string lexeme);
 Token funcErr(uni_string lexeme);
 Token funcAssignOp(uni_string lexeme);
+Token funcFL(uni_string lexeme);
+
 /*
  * Accepting function (action) callback table (array) definition
  */
 
  /* Define final state table */
+/* Define final state table */
 static PTR_ACCFUN finalStateTable[NUM_STATES] = {
-	NULL,          /* State 0 */
-	NULL,          /* State 1 */
-	funcID,        /* State 2: Identifier accepted */
-	funcErr,       /* State 3: Error state with retract */
-	NULL,          /* State 4 */
-	funcSL,        /* State 5: String literal accepted */
-	NULL,          /* State 6 */
-	funcCMT,       /* State 7: Comment accepted */
-	funcIL,        /* State 8: Integer literal accepted */
-	funcAssignOp,  /* State 9: '=' operator accepted */
-	funcErr,       /* State 10: Error state with retract */
-	funcErr        /* State 11: Illegal state */
+	NULL,      /* 0 */
+	NULL,      /* 1 */
+	funcID,    /* 2 */
+	funcErr,   /* 3 */
+	NULL,      /* 4 */
+	funcSL,    /* 5 */
+	NULL,      /* 6 */
+	funcCMT,   /* 7 */
+	NULL,      /* 8 */
+	NULL,      /* 9 */
+	funcFL,    /* 10 */
+	funcIL,    /* 11 */
+	funcFL     /* 12 */
 };
 
 /*
@@ -300,7 +326,7 @@ Language keywords
 */
 
 /* Define the number of keywords from the language */
-#define KWT_SIZE 13
+#define KWT_SIZE 14
 
 /* Define the list of keywords */
 static uni_string keywordTable[KWT_SIZE] = {
@@ -316,7 +342,8 @@ static uni_string keywordTable[KWT_SIZE] = {
 	"continue",    /* KW09 */
 	"return",      /* KW10 */
 	"true",        /* KW11 */
-	"false"        /* KW12 */
+	"false",       /* KW12 */
+	"prompt"
 };
 
 /* Scanner data */

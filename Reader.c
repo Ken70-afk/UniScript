@@ -164,7 +164,7 @@ BufferPointer readerAddChar(BufferPointer readerPointer, uni_char ch) {
 	}
 
 	/* TO_DO: Test the inclusion of chars */
-	if (readerPointer->positions.wrte * (uni_int)sizeof(uni_char) < readerPointer->size) {
+	if (readerPointer->positions.wrte < readerPointer->size) {
 		/* Buffer is NOT full, add the character */
 		readerPointer->content[readerPointer->positions.wrte++] = ch;
 	}
@@ -175,7 +175,7 @@ BufferPointer readerAddChar(BufferPointer readerPointer, uni_char ch) {
 			/* Fixed size mode - no reallocation allowed */
 			readerPointer->flags[FLAG_FUL] = UNI_TRUE; // Mark as full
 			readerPointer->content[readerPointer->positions.wrte] = READER_TERMINATOR;
-			return readerPointer;
+			return UNI_INVALID;
 
 		case MODE_ADDIT:
 			/* Additive mode - increase size by the increment */
@@ -204,13 +204,16 @@ BufferPointer readerAddChar(BufferPointer readerPointer, uni_char ch) {
 		/* Reallocate buffer */
 		tempReader = (uni_string)realloc(readerPointer->content, newSize * sizeof(uni_char));
 		if (!tempReader) {
+			free(readerPointer->content);
+			readerPointer->content = NULL;
 			return UNI_INVALID;  // Reallocation failed
 		}
+
 
 		/* Update buffer and check if memory was relocated */
 		readerPointer->content = tempReader;
 		readerPointer->size = newSize;
-		readerPointer->flags[FLAG_REL] = (readerPointer->content != tempReader);  // Set memory relocated flag
+		readerPointer->flags[FLAG_REL] = (newSize > readerPointer->size);
 
 		/* Add character after reallocation */
 		readerPointer->content[readerPointer->positions.wrte++] = ch;
@@ -274,7 +277,6 @@ uni_boln readerClear(BufferPointer const readerPointer) {
 */
 uni_boln readerFree(BufferPointer const readerPointer) {
 	/* TO_DO: Defensive programming */
-	/*uni_boln readerFree(BufferPointer const readerPointer) {
     /* TO_DO: Defensive programming */
 	if (!readerPointer) {
 		return UNI_FALSE;  // Return false if the pointer is NULL
