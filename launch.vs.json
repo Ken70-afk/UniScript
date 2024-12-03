@@ -9,7 +9,7 @@
       "name": "UniScript.exe",
         "args": [
             "2",
-            "UNI_HELLO.uni",
+            "UNI_DATATYPES.uni",
             "m"
         ]
     }
