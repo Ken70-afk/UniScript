@@ -96,11 +96,11 @@
  /* Global objects - variables */
 static BufferPointer sourceBuffer; /* pointer to input (source) buffer */
 BufferPointer stringLiteralTable; /* This buffer is used as a repository for string literals */
-sofia_intg errorNumber;     /* Run-time error number = 0 by default (ANSI) */
+uni_int errorNumber;     /* Run-time error number = 0 by default (ANSI) */
 
 /* External objects */
-extern sofia_intg syntaxErrorNumber /* number of syntax errors reported by the parser */;
-extern sofia_intg line; /* source code line number - defined in scanner.c */
+extern uni_int syntaxErrorNumber /* number of syntax errors reported by the parser */;
+extern uni_int line; /* source code line number - defined in scanner.c */
 
 extern ParserData psData;
 
@@ -111,13 +111,13 @@ extern ParserData psData;
  */
 
  /* Function declarations (prototypes) */
-extern sofia_void startParser(sofia_void);
-extern sofia_intg startScanner(BufferPointer sc_buf);
+extern uni_null startParser(uni_null);
+extern uni_int startScanner(BufferPointer sc_buf);
 
-static sofia_void printParserError(sofia_string fmt, ...);
-static sofia_void displayParser(BufferPointer ptrBuffer);
-static sofia_long getParserFileSize(sofia_string fname);
-static sofia_void callGarbageCollector(sofia_void);
+static uni_null printParserError(uni_string fmt, ...);
+static uni_null displayParser(BufferPointer ptrBuffer);
+static sofia_long getParserFileSize(uni_string fname);
+static uni_null callGarbageCollector(uni_null);
 
 /*
 ************************************************************
@@ -129,12 +129,12 @@ static sofia_void callGarbageCollector(sofia_void);
 ***********************************************************
 */
 
-sofia_intg mainParser(sofia_intg argc, sofia_string* argv) {
+uni_int mainParser(uni_int argc, uni_string* argv) {
 
 	numParserErrors = 0;			/* Initializes the errors */
 
 	FILE* fi;       /* input file handle */
-	sofia_intg loadsize = 0; /*the size of the file loaded in the buffer */
+	uni_int loadsize = 0; /*the size of the file loaded in the buffer */
 
 	/*check for correct arrguments - source file name */
 	if (argc <= 1) {
@@ -213,12 +213,12 @@ sofia_intg mainParser(sofia_intg argc, sofia_string* argv) {
 ************************************************************
 */
 
-sofia_void printParserError(sofia_string fmt, ...) {
+uni_null printParserError(uni_string fmt, ...) {
 
 	va_list ap;
 	va_start(ap, fmt);
 
-	(sofia_void)vfprintf(stderr, fmt, ap);
+	(uni_null)vfprintf(stderr, fmt, ap);
 	va_end(ap);
 
 	/* Move to new line */
@@ -236,7 +236,7 @@ sofia_void printParserError(sofia_string fmt, ...) {
 ************************************************************
 */
 
-sofia_long getParserFileSize(sofia_string fname) {
+sofia_long getParserFileSize(uni_string fname) {
 	FILE* input;
 	sofia_long flength;
 	input = fopen(fname, "r");
@@ -258,7 +258,7 @@ sofia_long getParserFileSize(sofia_string fname) {
 ************************************************************
 */
 
-sofia_void displayParser(BufferPointer ptrBuffer) {
+uni_null displayParser(BufferPointer ptrBuffer) {
 	printf("\nPrinting input buffer parameters:\n\n");
 	printf("The capacity of the buffer is:  %d\n", readerGetSize(ptrBuffer));
 	printf("The current size of the buffer is:  %d\n", readerGetPosWrte(ptrBuffer));
@@ -274,7 +274,7 @@ sofia_void displayParser(BufferPointer ptrBuffer) {
 ************************************************************
 */
 
-sofia_void callGarbageCollector(sofia_void) {
+uni_null callGarbageCollector(uni_null) {
 	if (syntaxErrorNumber)
 		printf("\nSyntax errors: %d\n", syntaxErrorNumber);
 	printf("\nCollecting garbage...\n");

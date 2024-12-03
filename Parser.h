@@ -66,10 +66,10 @@
 /* Global vars */
 static Token			lookahead;
 extern BufferPointer	stringLiteralTable;
-extern sofia_intg		line;
-extern Token			tokenizer(sofia_void);
-extern sofia_string		keywordTable[KWT_SIZE];
-static sofia_intg		syntaxErrorNumber = 0;
+extern uni_int		line;
+extern Token			tokenizer(uni_null);
+extern uni_string		keywordTable[KWT_SIZE];
+static uni_int		syntaxErrorNumber = 0;
 
 #define LANG_WRTE		"print&"
 #define LANG_READ		"input&"
@@ -97,21 +97,21 @@ enum KEYWORDS {
 
 /* Parser */
 typedef struct parserData {
-	sofia_intg parsHistogram[NUM_BNF_RULES];	/* Number of BNF Statements */
+	uni_int parsHistogram[NUM_BNF_RULES];	/* Number of BNF Statements */
 } ParserData, * pParsData;
 
 /* Number of errors */
-sofia_intg numParserErrors;
+uni_int numParserErrors;
 
 /* Scanner data */
 ParserData psData;
 
 /* Function definitions */
-sofia_void startParser();
-sofia_void matchToken(sofia_intg, sofia_intg);
-sofia_void syncErrorHandler(sofia_intg);
-sofia_void printError();
-sofia_void printBNFData(ParserData psData);
+uni_null startParser();
+uni_null matchToken(uni_int, uni_int);
+uni_null syncErrorHandler(uni_int);
+uni_null printError();
+uni_null printBNFData(ParserData psData);
 
 /* List of BNF statements */
 enum BNF_RULES {
@@ -131,7 +131,7 @@ enum BNF_RULES {
 
 
 /* TO_DO: Define the list of keywords */
-static sofia_string BNFStrTable[NUM_BNF_RULES] = {
+static uni_string BNFStrTable[NUM_BNF_RULES] = {
 	"BNF_error",
 	"BNF_codeSession",
 	"BNF_comment",
@@ -147,16 +147,16 @@ static sofia_string BNFStrTable[NUM_BNF_RULES] = {
 };
 
 /* TO_DO: Place ALL non-terminal function declarations */
-sofia_void codeSession();
-sofia_void comment();
-sofia_void dataSession();
-sofia_void optVarListDeclarations();
-sofia_void optionalStatements();
-sofia_void outputStatement();
-sofia_void outputVariableList();
-sofia_void program();
-sofia_void statement();
-sofia_void statements();
-sofia_void statementsPrime();
+uni_null codeSession();
+uni_null comment();
+uni_null dataSession();
+uni_null optVarListDeclarations();
+uni_null optionalStatements();
+uni_null outputStatement();
+uni_null outputVariableList();
+uni_null program();
+uni_null statement();
+uni_null statements();
+uni_null statementsPrime();
 
 #endif
