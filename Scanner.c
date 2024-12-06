@@ -159,10 +159,19 @@ Token tokenizer(uni_null) {
 			continue;
 		}
 
+		if (c == NWL_CHR) {
+			line++;  // Increment line number
+			currentToken.code = NWL_T;
+			scData.scanHistogram[currentToken.code]++;
+			return currentToken;
+		}
+
 		// Handle single-line comments starting with //
 		if (c == SLASH_CHR) {
 			uni_char nextChar = readerGetChar(sourceBuffer);
 			if (nextChar == SLASH_CHR) {
+				currentToken.code = CMT_T;
+				scData.scanHistogram[currentToken.code]++;
 				// Consume characters until newline or EOF
 				while ((c = readerGetChar(sourceBuffer)) != NWL_CHR && c != EOF_CHR && c != EOS_CHR);
 				if (c == NWL_CHR)

@@ -72,7 +72,7 @@
 #define RTE_CODE 1  /* Value for run-time error */
 
 /* Define the number of tokens */
-#define NUM_TOKENS 20
+#define NUM_TOKENS 21
 
 /* Define Token codes - Create your token classes */
 enum TOKENS {
@@ -95,7 +95,9 @@ enum TOKENS {
 	ADD_T,      /* 16: Addition operator */
 	SUB_T,      /* 17: Subtraction operator */
 	MUL_T,      /* 18: Multiplication operator */
-	DIV_T       /* 19: Division operator */
+	DIV_T,      /* 19: Division operator */
+	NWL_T       /* 20: Newline token */
+
 };
 
 
@@ -120,7 +122,8 @@ static uni_string tokenStrTable[NUM_TOKENS] = {
 	"ADD_T",    /* 16 */
 	"SUB_T",    /* 17 */
 	"MUL_T",    /* 18 */
-	"DIV_T"     /* 19 */
+	"DIV_T",     /* 19 */
+	"NWL_T"
 };
 
 
@@ -330,21 +333,22 @@ Language keywords
 
 /* Define the list of keywords */
 static uni_string keywordTable[KWT_SIZE] = {
-	"function",    /* KW00 */
-	"print",       /* KW01 */
-	"let",         /* KW02 */
-	"const",       /* KW03 */
-	"if",          /* KW04 */
-	"else",        /* KW05 */
-	"while",       /* KW06 */
-	"for",         /* KW07 */
-	"break",       /* KW08 */
-	"continue",    /* KW09 */
-	"return",      /* KW10 */
-	"true",        /* KW11 */
-	"false",       /* KW12 */
+	"function",
+	"print",
+	"let",
+	"const",
+	"if",
+	"else",
+	"while",
+	"for",
+	"break",
+	"continue",
+	"return",
+	"true",
+	"false",
 	"prompt"
 };
+
 
 /* Scanner data */
 ScannerData scData;

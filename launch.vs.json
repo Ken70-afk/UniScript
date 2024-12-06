@@ -8,8 +8,8 @@
       "projectTarget": "UniScript.exe",
       "name": "UniScript.exe",
         "args": [
-            "2",
-            "UNI_DATATYPES.uni",
+            "3",
+            "UNI_VOLUME.uni",
             "m"
         ]
     }
